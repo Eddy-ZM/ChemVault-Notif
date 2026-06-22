@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare deploy",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "latest",
+    "@opennextjs/cloudflare": "^1.19.11",
     "@testing-library/react": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
