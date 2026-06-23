@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  PlayCircle,
+  RotateCcw,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,42 +29,86 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type {
+  ApprovedDataset,
   ExtractionResult,
   ExtractionResultItem,
 } from "@/types/extraction-results";
 import { ExtractionResultStatusBadge } from "./ExtractionResultStatusBadge";
 
 interface ResultReviewPanelProps {
+  projectId: string;
   result: ExtractionResult;
   items: ExtractionResultItem[];
-  onResultChange: (result: ExtractionResult) => void;
+  onResultChange: (
+    result: ExtractionResult,
+    dataset?: ApprovedDataset | null
+  ) => void;
 }
 
 export function ResultReviewPanel({
+  projectId,
   result,
   items,
   onResultChange,
 }: ResultReviewPanelProps) {
+  const [startingReview, setStartingReview] = useState(false);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [rerunOpen, setRerunOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [rerunNote, setRerunNote] = useState("");
 
   const stats = useMemo(() => reviewStats(items), [items]);
-  const canApprove = items.length > 0 && stats.pending === 0 && stats.rejected === 0;
+  const canApprove =
+    items.length > 0 && stats.pending === 0 && stats.uncertain === 0;
+
+  async function startReview() {
+    setStartingReview(true);
+
+    try {
+      const response = await fetch(
+        `/api/projects/${projectId}/results/${result.id}/start-review`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+        }
+      );
+      const data = (await response.json()) as {
+        result?: ExtractionResult;
+        error?: string;
+      };
+
+      if (!response.ok || !data.result) {
+        throw new Error(data.error || "Unable to start review.");
+      }
+
+      onResultChange(data.result);
+      toast.success("Review started.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start review.");
+    } finally {
+      setStartingReview(false);
+    }
+  }
 
   async function approve() {
     setApproving(true);
 
     try {
-      const response = await fetch(`/api/results/${result.id}/approve`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment: "Human review approved." }),
-      });
+      const response = await fetch(
+        `/api/projects/${projectId}/results/${result.id}/approve`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: "Human review approved." }),
+        }
+      );
       const data = (await response.json()) as {
         result?: ExtractionResult;
+        dataset?: ApprovedDataset;
         error?: string;
       };
 
@@ -65,7 +116,7 @@ export function ResultReviewPanel({
         throw new Error(data.error || "Unable to approve result.");
       }
 
-      onResultChange(data.result);
+      onResultChange(data.result, data.dataset ?? null);
       toast.success("Extraction result approved.");
     } catch (error) {
       toast.error(
@@ -80,12 +131,15 @@ export function ResultReviewPanel({
     setRejecting(true);
 
     try {
-      const response = await fetch(`/api/results/${result.id}/reject`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
-      });
+      const response = await fetch(
+        `/api/projects/${projectId}/results/${result.id}/reject`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: reason }),
+        }
+      );
       const data = (await response.json()) as {
         result?: ExtractionResult;
         error?: string;
@@ -105,6 +159,39 @@ export function ResultReviewPanel({
       );
     } finally {
       setRejecting(false);
+    }
+  }
+
+  async function requestRerun() {
+    setRerunning(true);
+
+    try {
+      const response = await fetch(
+        `/api/projects/${projectId}/results/${result.id}/rerun`,
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: rerunNote }),
+        }
+      );
+      const data = (await response.json()) as {
+        result?: ExtractionResult;
+        error?: string;
+      };
+
+      if (!response.ok || !data.result) {
+        throw new Error(data.error || "Unable to request rerun.");
+      }
+
+      onResultChange(data.result);
+      setRerunOpen(false);
+      setRerunNote("");
+      toast.success("Rerun requested.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to request rerun.");
+    } finally {
+      setRerunning(false);
     }
   }
 
@@ -130,6 +217,7 @@ export function ResultReviewPanel({
             <Metric label="Corrected" value={String(stats.corrected)} />
             <Metric label="Pending" value={String(stats.pending)} />
             <Metric label="Rejected" value={String(stats.rejected)} />
+            <Metric label="Uncertain" value={String(stats.uncertain)} />
           </div>
 
           <Separator />
@@ -139,7 +227,8 @@ export function ResultReviewPanel({
               <ShieldCheck className="size-4" aria-hidden="true" />
               <AlertTitle>Review required</AlertTitle>
               <AlertDescription>
-                Accept or correct every item before approving the result.
+                Accept, correct, or reject every item before approving the
+                result. Uncertain items need a final decision.
               </AlertDescription>
             </Alert>
           ) : (
@@ -147,12 +236,25 @@ export function ResultReviewPanel({
               <CheckCircle2 className="size-4" aria-hidden="true" />
               <AlertTitle>Ready to approve</AlertTitle>
               <AlertDescription>
-                All review items are accepted or corrected.
+                All review items have an explicit human decision.
               </AlertDescription>
             </Alert>
           )}
 
           <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={startingReview || result.status === "in_review"}
+              onClick={() => void startReview()}
+            >
+              {startingReview ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <PlayCircle data-icon="inline-start" />
+              )}
+              Start review
+            </Button>
             <Button
               type="button"
               disabled={!canApprove || approving || result.status === "approved"}
@@ -173,6 +275,15 @@ export function ResultReviewPanel({
             >
               <XCircle data-icon="inline-start" />
               Reject result
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={rerunning || result.status === "rerun_requested"}
+              onClick={() => setRerunOpen(true)}
+            >
+              <RotateCcw data-icon="inline-start" />
+              Request rerun
             </Button>
           </div>
         </CardContent>
@@ -216,6 +327,44 @@ export function ResultReviewPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={rerunOpen} onOpenChange={setRerunOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request extraction rerun</DialogTitle>
+            <DialogDescription>
+              Add a note for the worker or scientist who will rerun this extraction.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={rerunNote}
+            onChange={(event) => setRerunNote(event.currentTarget.value)}
+            placeholder="Rerun with stricter table validation."
+            rows={4}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRerunOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={rerunning}
+              onClick={() => void requestRerun()}
+            >
+              {rerunning ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RotateCcw data-icon="inline-start" />
+              )}
+              Request rerun
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -235,7 +384,7 @@ function reviewStats(items: ExtractionResultItem[]) {
       stats[item.status] += 1;
       return stats;
     },
-    { accepted: 0, corrected: 0, pending: 0, rejected: 0 }
+    { accepted: 0, corrected: 0, pending: 0, rejected: 0, uncertain: 0 }
   );
 }
 

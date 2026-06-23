@@ -99,8 +99,9 @@ export async function exportResult(
   await store.insertReview({
     resultId: result.id,
     reviewerId: userId,
-    action: "export_created",
-    changes: {
+    action: "comment_added",
+    metadata: {
+      actionType: "export_created",
       resultId: result.id,
       exportId: exportRecord.id,
       exportType,

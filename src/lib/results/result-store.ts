@@ -1,33 +1,39 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
+  ApprovedDatasetInsert,
   Database,
   ExtractionResultExportInsert,
   ExtractionResultInsert,
-  ExtractionResultItemInsert,
-  ExtractionResultItemUpdate,
-  ExtractionResultReviewInsert,
   ExtractionResultUpdate,
   Json,
+  ResultCorrectionInsert,
+  ResultItemInsert,
+  ResultItemUpdate,
+  ResultReviewInsert,
 } from "@/lib/supabase/database.types";
 import type {
+  ApprovedDataset,
   CreateExtractionResultInput,
   ExtractionExportType,
   ExtractionResult,
   ExtractionResultExport,
-  ExtractionResultItem,
-  ExtractionResultItemStatus,
   ExtractionResultMetadata,
-  ExtractionResultReview,
   ExtractionResultStatus,
-  ExtractionReviewAction,
-  SplitResultItemInput,
-} from "@/types/extraction-results";
+  ResultCorrection,
+  ResultItem,
+  ResultItemInput,
+  ResultItemStatus,
+  ResultReview,
+  ResultReviewAction,
+} from "@/types/results";
 import {
+  toApprovedDataset,
   toExtractionResult,
   toExtractionResultExport,
   toExtractionResultItem,
   toExtractionResultReview,
+  toResultCorrection,
 } from "./transform";
 
 export interface UpdateResultRecordInput {
@@ -45,9 +51,32 @@ export interface UpdateResultRecordInput {
 export interface InsertReviewRecordInput {
   resultId: string;
   reviewerId: string;
-  action: ExtractionReviewAction;
+  action: ResultReviewAction;
+  note?: string | null;
+  metadata?: ExtractionResultMetadata | null;
   comment?: string | null;
   changes?: ExtractionResultMetadata | null;
+}
+
+export interface InsertCorrectionRecordInput {
+  resultId: string;
+  resultItemId?: string | null;
+  correctedBy: string;
+  fieldPath: string;
+  oldValue?: Json | null;
+  newValue?: Json | null;
+  reason?: string | null;
+}
+
+export interface InsertApprovedDatasetInput {
+  resultId?: string | null;
+  projectId?: string | null;
+  fileId?: string | null;
+  userId: string;
+  title: string;
+  description?: string | null;
+  data: ExtractionResultMetadata;
+  schemaVersion?: string;
 }
 
 export interface InsertExportRecordInput {
@@ -62,28 +91,46 @@ export interface InsertExportRecordInput {
 export interface ResultStore {
   getResult(resultId: string): Promise<ExtractionResult | null>;
   getResultByTaskId(taskId: string): Promise<ExtractionResult | null>;
-  listProjectResults(projectId: string): Promise<ExtractionResult[]>;
+  listProjectResults(input: {
+    projectId: string;
+    status?: string | null;
+    fileId?: string | null;
+    taskId?: string | null;
+    limit?: number;
+    cursor?: string | null;
+  }): Promise<ExtractionResult[]>;
   createResult(
     input: CreateExtractionResultInput,
-    items: SplitResultItemInput[]
+    items: ResultItemInput[]
   ): Promise<ExtractionResult>;
-  listResultItems(resultId: string): Promise<ExtractionResultItem[]>;
-  getResultItem(itemId: string): Promise<ExtractionResultItem | null>;
+  listResultItems(resultId: string): Promise<ResultItem[]>;
+  getResultItem(itemId: string): Promise<ResultItem | null>;
   updateResultItem(
     itemId: string,
     update: {
       value?: Json;
-      status: ExtractionResultItemStatus;
-      reviewedBy: string;
-      reviewedAt: string;
+      status: ResultItemStatus;
+      reviewerNote?: string | null;
     }
-  ): Promise<ExtractionResultItem>;
+  ): Promise<ResultItem>;
   updateResult(
     resultId: string,
     update: UpdateResultRecordInput
   ): Promise<ExtractionResult>;
-  insertReview(input: InsertReviewRecordInput): Promise<ExtractionResultReview>;
-  listReviews(resultId: string): Promise<ExtractionResultReview[]>;
+  insertReview(input: InsertReviewRecordInput): Promise<ResultReview>;
+  listReviews(resultId: string): Promise<ResultReview[]>;
+  insertCorrection(
+    input: InsertCorrectionRecordInput
+  ): Promise<ResultCorrection>;
+  listCorrections(resultId: string): Promise<ResultCorrection[]>;
+  insertApprovedDataset(
+    input: InsertApprovedDatasetInput
+  ): Promise<ApprovedDataset>;
+  getApprovedDatasetByResult(
+    resultId: string
+  ): Promise<ApprovedDataset | null>;
+  listApprovedDatasets(projectId: string): Promise<ApprovedDataset[]>;
+  getApprovedDataset(datasetId: string): Promise<ApprovedDataset | null>;
   insertExport(input: InsertExportRecordInput): Promise<ExtractionResultExport>;
   listExports(resultId: string): Promise<ExtractionResultExport[]>;
   isProjectMember(projectId: string, userId: string): Promise<boolean>;
@@ -123,12 +170,31 @@ export function createSupabaseResultStore(
       return data ? toExtractionResult(data) : null;
     },
 
-    async listProjectResults(projectId) {
-      const { data, error } = await supabase
+    async listProjectResults(input) {
+      let query = supabase
         .from("extraction_results")
         .select("*")
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false });
+        .eq("project_id", input.projectId)
+        .order("created_at", { ascending: false })
+        .limit(input.limit ?? 50);
+
+      if (input.status) {
+        query = query.eq("status", input.status);
+      }
+
+      if (input.fileId) {
+        query = query.eq("file_id", input.fileId);
+      }
+
+      if (input.taskId) {
+        query = query.eq("task_id", input.taskId);
+      }
+
+      if (input.cursor) {
+        query = query.lt("created_at", input.cursor);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -150,6 +216,7 @@ export function createSupabaseResultStore(
         confidence_score: input.confidenceScore ?? null,
         model_name: input.modelName ?? null,
         model_version: input.modelVersion ?? null,
+        extraction_summary: input.extractionSummary ?? null,
         metadata: (input.metadata ?? {}) as Json,
       };
 
@@ -164,20 +231,21 @@ export function createSupabaseResultStore(
       }
 
       const result = toExtractionResult(data);
-      const itemRows: ExtractionResultItemInsert[] = items.map((item) => ({
+      const itemRows: ResultItemInsert[] = items.map((item) => ({
         result_id: result.id,
         item_type: item.itemType,
         label: item.label ?? null,
         value: item.value,
-        original_value: item.originalValue ?? item.value,
         confidence_score: item.confidenceScore ?? null,
-        status: "pending",
-        metadata: (item.metadata ?? {}) as Json,
+        page_number: item.pageNumber ?? null,
+        source_location: (item.sourceLocation ?? {}) as Json,
+        status: item.status ?? "pending",
+        reviewer_note: item.reviewerNote ?? null,
       }));
 
       if (itemRows.length > 0) {
         const { error: itemError } = await supabase
-          .from("extraction_result_items")
+          .from("result_items")
           .insert(itemRows);
 
         if (itemError) {
@@ -190,7 +258,7 @@ export function createSupabaseResultStore(
 
     async listResultItems(resultId) {
       const { data, error } = await supabase
-        .from("extraction_result_items")
+        .from("result_items")
         .select("*")
         .eq("result_id", resultId)
         .order("created_at", { ascending: true });
@@ -204,7 +272,7 @@ export function createSupabaseResultStore(
 
     async getResultItem(itemId) {
       const { data, error } = await supabase
-        .from("extraction_result_items")
+        .from("result_items")
         .select("*")
         .eq("id", itemId)
         .maybeSingle();
@@ -217,21 +285,20 @@ export function createSupabaseResultStore(
     },
 
     async updateResultItem(itemId, update) {
-      const dbUpdate: ExtractionResultItemUpdate = {
+      const dbUpdate: ResultItemUpdate = {
         value: update.value,
         status: update.status,
-        reviewed_by: update.reviewedBy,
-        reviewed_at: update.reviewedAt,
+        reviewer_note: update.reviewerNote ?? null,
       };
       const { data, error } = await supabase
-        .from("extraction_result_items")
+        .from("result_items")
         .update(dbUpdate)
         .eq("id", itemId)
         .select("*")
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to update extraction result item.");
+        throw error ?? new Error("Failed to update result item.");
       }
 
       return toExtractionResultItem(data);
@@ -264,21 +331,21 @@ export function createSupabaseResultStore(
     },
 
     async insertReview(input) {
-      const insert: ExtractionResultReviewInsert = {
+      const insert: ResultReviewInsert = {
         result_id: input.resultId,
         reviewer_id: input.reviewerId,
         action: input.action,
-        comment: input.comment ?? null,
-        changes: (input.changes ?? {}) as Json,
+        note: input.note ?? input.comment ?? null,
+        metadata: (input.metadata ?? input.changes ?? {}) as Json,
       };
       const { data, error } = await supabase
-        .from("extraction_result_reviews")
+        .from("result_reviews")
         .insert(insert)
         .select("*")
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to create extraction result review.");
+        throw error ?? new Error("Failed to create result review.");
       }
 
       return toExtractionResultReview(data);
@@ -286,7 +353,7 @@ export function createSupabaseResultStore(
 
     async listReviews(resultId) {
       const { data, error } = await supabase
-        .from("extraction_result_reviews")
+        .from("result_reviews")
         .select("*")
         .eq("result_id", resultId)
         .order("created_at", { ascending: false });
@@ -296,6 +363,111 @@ export function createSupabaseResultStore(
       }
 
       return (data ?? []).map(toExtractionResultReview);
+    },
+
+    async insertCorrection(input) {
+      const insert: ResultCorrectionInsert = {
+        result_id: input.resultId,
+        result_item_id: input.resultItemId ?? null,
+        corrected_by: input.correctedBy,
+        field_path: input.fieldPath,
+        old_value: input.oldValue ?? null,
+        new_value: input.newValue ?? null,
+        reason: input.reason ?? null,
+      };
+      const { data, error } = await supabase
+        .from("result_corrections")
+        .insert(insert)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        throw error ?? new Error("Failed to create result correction.");
+      }
+
+      return toResultCorrection(data);
+    },
+
+    async listCorrections(resultId) {
+      const { data, error } = await supabase
+        .from("result_corrections")
+        .select("*")
+        .eq("result_id", resultId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return (data ?? []).map(toResultCorrection);
+    },
+
+    async insertApprovedDataset(input) {
+      const insert: ApprovedDatasetInsert = {
+        result_id: input.resultId ?? null,
+        project_id: input.projectId ?? null,
+        file_id: input.fileId ?? null,
+        user_id: input.userId,
+        title: input.title,
+        description: input.description ?? null,
+        data: input.data as Json,
+        schema_version: input.schemaVersion ?? "1.0",
+      };
+      const { data, error } = await supabase
+        .from("approved_datasets")
+        .insert(insert)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        throw error ?? new Error("Failed to create approved dataset.");
+      }
+
+      return toApprovedDataset(data);
+    },
+
+    async getApprovedDatasetByResult(resultId) {
+      const { data, error } = await supabase
+        .from("approved_datasets")
+        .select("*")
+        .eq("result_id", resultId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data ? toApprovedDataset(data) : null;
+    },
+
+    async listApprovedDatasets(projectId) {
+      const { data, error } = await supabase
+        .from("approved_datasets")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return (data ?? []).map(toApprovedDataset);
+    },
+
+    async getApprovedDataset(datasetId) {
+      const { data, error } = await supabase
+        .from("approved_datasets")
+        .select("*")
+        .eq("id", datasetId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data ? toApprovedDataset(data) : null;
     },
 
     async insertExport(input) {

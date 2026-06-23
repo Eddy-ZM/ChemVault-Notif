@@ -22,7 +22,18 @@ export async function GET(
 
     const status = request.nextUrl.searchParams.get("status")?.trim();
     const resultType = request.nextUrl.searchParams.get("resultType")?.trim();
-    const results = await createSupabaseResultStore().listProjectResults(projectId);
+    const fileId = request.nextUrl.searchParams.get("fileId")?.trim();
+    const taskId = request.nextUrl.searchParams.get("taskId")?.trim();
+    const cursor = request.nextUrl.searchParams.get("cursor")?.trim();
+    const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
+    const results = await createSupabaseResultStore().listProjectResults({
+      projectId,
+      status,
+      fileId,
+      taskId,
+      cursor,
+      limit,
+    });
 
     return NextResponse.json({
       results: results.filter(
@@ -34,4 +45,11 @@ export async function GET(
   } catch (error) {
     return jsonError(error, "Failed to load extraction results.");
   }
+}
+
+function parseLimit(value: string | null): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(100, Math.max(1, Math.floor(parsed)))
+    : 50;
 }

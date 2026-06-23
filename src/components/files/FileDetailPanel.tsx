@@ -20,6 +20,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database, ProjectFileRow } from "@/lib/supabase/database.types";
 import { toProjectFile } from "@/lib/files/transform";
 import type { FileEvent, ProjectFile } from "@/types/files";
+import type { ExtractionResult } from "@/types/results";
 import { FileProcessingTimeline } from "./FileProcessingTimeline";
 import { FileStatusBadge } from "./FileStatusBadge";
 
@@ -33,6 +34,7 @@ export function FileDetailPanel({ projectId, fileId }: FileDetailPanelProps) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [file, setFile] = useState<ProjectFile | null>(null);
   const [events, setEvents] = useState<FileEvent[]>([]);
+  const [result, setResult] = useState<ExtractionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +56,11 @@ export function FileDetailPanel({ projectId, fileId }: FileDetailPanelProps) {
       const data = (await response.json()) as {
         file: ProjectFile;
         events: FileEvent[];
+        result: ExtractionResult | null;
       };
       setFile(data.file);
       setEvents(data.events);
+      setResult(data.result);
       setError(null);
     } catch (loadError) {
       setError(
@@ -234,13 +238,24 @@ export function FileDetailPanel({ projectId, fileId }: FileDetailPanelProps) {
           </div>
 
           {file.extractionTaskId ? (
-            <Button variant="outline" asChild>
-              <Link
-                href={`/projects/${projectId}/tasks/${file.extractionTaskId}` as Route}
-              >
-                Related extraction task
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" asChild>
+                <Link
+                  href={`/projects/${projectId}/tasks/${file.extractionTaskId}` as Route}
+                >
+                  Related extraction task
+                </Link>
+              </Button>
+              {result ? (
+                <Button variant="outline" asChild>
+                  <Link
+                    href={`/projects/${projectId}/results/${result.id}` as Route}
+                  >
+                    Review extraction result
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
           ) : null}
 
           <Separator />

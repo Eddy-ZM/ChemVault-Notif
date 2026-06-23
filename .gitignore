@@ -1,8 +1,11 @@
 node_modules
 .next
+.open-next
+.wrangler
 .vercel
 dist
 build
+cloudflare-env.d.ts
 .env
 .env.local
 .env.*.local

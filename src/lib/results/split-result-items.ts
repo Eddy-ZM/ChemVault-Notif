@@ -1,7 +1,7 @@
 import type { Json } from "@/lib/supabase/database.types";
 import type {
-  ExtractionResultItemType,
   ExtractionStructuredData,
+  ResultItemType,
   SplitResultItemInput,
 } from "@/types/extraction-results";
 
@@ -11,13 +11,18 @@ const STRUCTURED_COLLECTIONS = [
   { key: "reactions", itemType: "reaction" },
   { key: "properties", itemType: "property" },
   { key: "measurements", itemType: "measurement" },
-  { key: "experimental_conditions", itemType: "experimental_condition" },
-  { key: "experimentalConditions", itemType: "experimental_condition" },
-  { key: "references", itemType: "reference" },
+  { key: "spectra", itemType: "spectrum" },
+  { key: "spectrum", itemType: "spectrum" },
+  { key: "methods", itemType: "method" },
+  { key: "experimental_conditions", itemType: "condition" },
+  { key: "experimentalConditions", itemType: "condition" },
+  { key: "conditions", itemType: "condition" },
+  { key: "references", itemType: "citation" },
+  { key: "citations", itemType: "citation" },
   { key: "notes", itemType: "note" },
 ] as const satisfies Array<{
   key: string;
-  itemType: ExtractionResultItemType;
+  itemType: ResultItemType;
 }>;
 
 export function splitResultItems(
@@ -59,7 +64,7 @@ export function splitResultItems(
 }
 
 function toReviewItem(
-  itemType: ExtractionResultItemType,
+  itemType: ResultItemType,
   entry: Json,
   index: number
 ): SplitResultItemInput {
@@ -70,8 +75,12 @@ function toReviewItem(
     itemType,
     label: labelForItem(itemType, record, index),
     value,
-    originalValue: sanitizeJson(record?.originalValue ?? record?.original_value ?? entry),
+    originalValue: sanitizeJson(
+      record?.originalValue ?? record?.original_value ?? entry
+    ),
     confidenceScore: record ? confidenceFromRecord(record) : null,
+    pageNumber: record ? pageNumberFromRecord(record) : null,
+    sourceLocation: sourceLocationFromRecord(record),
     metadata: {
       sourceCollection: sourceCollectionForItemType(itemType),
       sourceIndex: index,
@@ -93,7 +102,7 @@ function genericNoteItem(message: string): SplitResultItemInput {
 }
 
 function labelForItem(
-  itemType: ExtractionResultItemType,
+  itemType: ResultItemType,
   record: Record<string, Json> | null,
   index: number
 ): string {
@@ -113,16 +122,20 @@ function labelForItem(
   return `${humanizeItemType(itemType)} ${index + 1}`;
 }
 
-function humanizeItemType(itemType: ExtractionResultItemType): string {
+function humanizeItemType(itemType: ResultItemType): string {
   return itemType
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
 
-function sourceCollectionForItemType(itemType: ExtractionResultItemType): string {
-  if (itemType === "experimental_condition") {
-    return "experimental_conditions";
+function sourceCollectionForItemType(itemType: ResultItemType): string {
+  if (itemType === "condition") {
+    return "conditions";
+  }
+
+  if (itemType === "citation") {
+    return "citations";
   }
 
   return `${itemType}s`;
@@ -152,6 +165,33 @@ function stringField(
 function numberField(record: Record<string, Json>, field: string): number | null {
   const value = record[field];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function pageNumberFromRecord(record: Record<string, Json>): number | null {
+  const value =
+    numberField(record, "pageNumber") ??
+    numberField(record, "page_number") ??
+    numberField(record, "page");
+
+  return value && value > 0 ? Math.round(value) : null;
+}
+
+function sourceLocationFromRecord(
+  record: Record<string, Json> | null
+): Record<string, Json> {
+  if (!record) {
+    return {};
+  }
+
+  const explicit = record.sourceLocation ?? record.source_location;
+  if (isRecord(explicit)) {
+    return explicit;
+  }
+
+  return {
+    ...(record.page ? { page: record.page } : {}),
+    ...(record.source ? { source: record.source } : {}),
+  };
 }
 
 function sanitizeJson(value: unknown): Json {

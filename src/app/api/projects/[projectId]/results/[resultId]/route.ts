@@ -25,13 +25,23 @@ export async function GET(
       user,
       store,
     });
-    const [items, reviews, exportRecords] = await Promise.all([
+    const [items, reviews, corrections, approvedDataset, exportRecords] =
+      await Promise.all([
       store.listResultItems(result.id),
       store.listReviews(result.id),
+      store.listCorrections(result.id),
+      store.getApprovedDatasetByResult(result.id),
       store.listExports(result.id),
     ]);
 
-    return NextResponse.json({ result, items, reviews, exports: exportRecords });
+    return NextResponse.json({
+      result,
+      items,
+      reviews,
+      corrections,
+      approvedDataset,
+      exports: exportRecords,
+    });
   } catch (error) {
     return jsonError(error, "Failed to load extraction result.");
   }

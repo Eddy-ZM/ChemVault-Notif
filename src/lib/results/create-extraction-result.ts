@@ -9,6 +9,7 @@ import type {
   ExtractionResult,
   ExtractionResultMetadata,
   ExtractionStructuredData,
+  ResultItemInput,
 } from "@/types/extraction-results";
 import {
   createSupabaseResultStore,
@@ -25,6 +26,33 @@ interface CreateExtractionResultDependencies {
   createProjectMessage?: boolean;
 }
 
+type NormalizedCreateExtractionResultInput = Omit<
+  CreateExtractionResultInput,
+  | "taskId"
+  | "userId"
+  | "fileId"
+  | "projectId"
+  | "rawOutput"
+  | "structuredData"
+  | "confidenceScore"
+  | "modelName"
+  | "modelVersion"
+  | "extractionSummary"
+  | "metadata"
+> & {
+  taskId: string;
+  userId: string;
+  fileId: string | null;
+  projectId: string | null;
+  rawOutput: ExtractionStructuredData;
+  structuredData: ExtractionStructuredData;
+  confidenceScore: number | null;
+  modelName: string | null;
+  modelVersion: string | null;
+  extractionSummary: string | null;
+  metadata: ExtractionResultMetadata;
+};
+
 export async function createExtractionResult(
   input: CreateExtractionResultInput,
   dependencies: CreateExtractionResultDependencies = {}
@@ -37,10 +65,7 @@ export async function createExtractionResult(
     return existing;
   }
 
-  const result = await store.createResult(
-    normalized,
-    splitResultItems(normalized.structuredData)
-  );
+  const result = await store.createResult(normalized, resultItems(normalized));
 
   await logResultCreated(result);
   await (dependencies.notifyFn ?? notify)(resultReadyNotification(result));
@@ -54,16 +79,7 @@ export async function createExtractionResult(
 
 function normalizeInput(
   input: CreateExtractionResultInput
-): Required<
-  Pick<
-    CreateExtractionResultInput,
-    "taskId" | "userId" | "rawOutput" | "structuredData" | "metadata"
-  >
-> &
-  Omit<
-    CreateExtractionResultInput,
-    "taskId" | "userId" | "rawOutput" | "structuredData" | "metadata"
-  > {
+): NormalizedCreateExtractionResultInput {
   const taskId = input.taskId?.trim();
   const userId = input.userId?.trim();
 
@@ -86,6 +102,7 @@ function normalizeInput(
     confidenceScore: normalizeConfidence(input.confidenceScore),
     modelName: optionalTrimmed(input.modelName),
     modelVersion: optionalTrimmed(input.modelVersion),
+    extractionSummary: optionalTrimmed(input.extractionSummary),
     metadata: normalizeObject(input.metadata),
   };
 }
@@ -133,7 +150,7 @@ async function logResultCreated(result: ExtractionResult) {
     audit: {
       actorUserId: result.userId,
       actorType: "ai",
-      action: "extraction_result.created",
+      action: "result.created",
       entityType: "extraction_result",
       entityId: result.id,
       projectId: result.projectId,
@@ -150,11 +167,12 @@ async function logResultCreated(result: ExtractionResult) {
           projectId: result.projectId,
           actorUserId: result.userId,
           actorType: "ai",
-          eventType: "extraction_result.created",
+          eventType: "result.ready_for_review",
           entityType: "extraction_result",
           entityId: result.id,
           title: "Extraction result ready for review",
-          description: "ChemVault has prepared extracted data for human review.",
+          description:
+            "ChemVault has extracted scientific data from this file.",
           visibility: "project",
           severity: "success",
           metadata,
@@ -167,7 +185,7 @@ function resultReadyNotification(result: ExtractionResult): NotificationPayload 
   return {
     userId: result.userId,
     title: "Extraction result ready for review",
-    body: "ChemVault has prepared extracted data for human review.",
+    body: "ChemVault has extracted scientific data from your file. Please review the result.",
     type: "success",
     source: "ai-extractor",
     link: result.projectId
@@ -178,9 +196,18 @@ function resultReadyNotification(result: ExtractionResult): NotificationPayload 
       taskId: result.taskId,
       fileId: result.fileId,
       projectId: result.projectId,
-      pushPreviewAllowed: false,
+      pushPreviewAllowed: true,
     },
   };
+}
+
+function resultItems(input: {
+  items?: ResultItemInput[] | null;
+  structuredData: ExtractionStructuredData;
+}): ResultItemInput[] {
+  return input.items && input.items.length > 0
+    ? input.items
+    : splitResultItems(input.structuredData);
 }
 
 async function createResultReadyMessage(result: ExtractionResult) {

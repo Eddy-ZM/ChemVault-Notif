@@ -11,6 +11,7 @@ import type {
 } from "@/lib/notifications/types";
 import { updateExtractionTaskStatus } from "@/lib/tasks/update-extraction-task-status";
 import type { UpdateExtractionTaskStatusInput } from "@/lib/tasks/types";
+import type { Json } from "@/lib/supabase/database.types";
 import {
   resolveBroadcastRecipients,
   uniqueValidUserIds,
@@ -22,6 +23,13 @@ import type {
   UpdateFileProcessingStatusInput,
 } from "@/types/files";
 import type { CreateExtractionResultInput } from "@/types/extraction-results";
+import {
+  RESULT_ITEM_STATUSES,
+  RESULT_ITEM_TYPES,
+  type ResultItemInput,
+  type ResultItemStatus,
+  type ResultItemType,
+} from "@/types/results";
 import type { CreateMessageInput, MessageMetadata } from "@/types/messages";
 import type { WebhookEvent, WebhookPayload } from "@/types/webhooks";
 import {
@@ -369,9 +377,44 @@ function toResultCreatedInput(event: WebhookEvent): CreateExtractionResultInput 
     structuredData: payloadObject(payload.structuredData),
     modelName: optionalPayloadString(payload.modelName),
     modelVersion: optionalPayloadString(payload.modelVersion),
+    extractionSummary: optionalPayloadString(payload.extractionSummary),
     confidenceScore: numberValue(payload.confidenceScore),
     metadata: payloadObject(payload.metadata),
+    items: resultItemsValue(payload.items),
   };
+}
+
+function resultItemsValue(value: unknown): ResultItemInput[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      itemType: resultItemTypeValue(item.itemType ?? item.item_type),
+      label: optionalPayloadString(item.label),
+      value: (item.value ?? {}) as Json,
+      confidenceScore: numberValue(item.confidenceScore),
+      pageNumber: integerValue(item.pageNumber ?? item.page_number),
+      sourceLocation: payloadObject(item.sourceLocation ?? item.source_location),
+      status: resultItemStatusValue(item.status),
+      reviewerNote: optionalPayloadString(
+        item.reviewerNote ?? item.reviewer_note
+      ),
+    }));
+}
+
+function resultItemTypeValue(value: unknown): ResultItemType {
+  return RESULT_ITEM_TYPES.includes(value as ResultItemType)
+    ? (value as ResultItemType)
+    : "note";
+}
+
+function resultItemStatusValue(value: unknown): ResultItemStatus {
+  return RESULT_ITEM_STATUSES.includes(value as ResultItemStatus)
+    ? (value as ResultItemStatus)
+    : "pending";
 }
 
 async function createPrivilegedMessage(input: CreateMessageInput) {
@@ -549,8 +592,16 @@ function stringArrayValue(value: unknown): string[] {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function numberValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function integerValue(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
 }
 
 function messageSenderType(value: unknown): CreateMessageInput["senderType"] {

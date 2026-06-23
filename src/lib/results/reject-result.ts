@@ -10,8 +10,10 @@ import {
 
 interface RejectResultInput {
   resultId: string;
-  userId: string;
-  reason: string;
+  reviewerId?: string;
+  userId?: string;
+  note?: string | null;
+  reason?: string | null;
 }
 
 interface RejectResultDependencies {
@@ -27,19 +29,19 @@ export async function rejectResult(
   dependencies: RejectResultDependencies = {}
 ): Promise<ExtractionResult> {
   const resultId = input.resultId?.trim();
-  const userId = input.userId?.trim();
-  const reason = input.reason?.trim();
+  const reviewerId = (input.reviewerId ?? input.userId)?.trim();
+  const note = (input.note ?? input.reason)?.trim();
 
   if (!resultId) {
     throw new NotificationError("resultId is required.", undefined, 400);
   }
 
-  if (!userId) {
-    throw new NotificationError("userId is required.", undefined, 400);
+  if (!reviewerId) {
+    throw new NotificationError("reviewerId is required.", undefined, 400);
   }
 
-  if (!reason) {
-    throw new NotificationError("reason is required.", undefined, 400);
+  if (!note) {
+    throw new NotificationError("note is required.", undefined, 400);
   }
 
   const store = dependencies.store ?? createSupabaseResultStore();
@@ -49,25 +51,25 @@ export async function rejectResult(
     throw new NotificationError("Extraction result not found.", undefined, 404);
   }
 
-  await assertCanReview({ result, userId, store });
+  await assertCanReview({ result, reviewerId, store });
   const rejectedAt = new Date().toISOString();
   const updated = await store.updateResult(result.id, {
     status: "rejected",
-    reviewedBy: userId,
+    reviewedBy: reviewerId,
     reviewedAt: result.reviewedAt ?? rejectedAt,
-    rejectedBy: userId,
+    rejectedBy: reviewerId,
     rejectedAt,
-    rejectionReason: reason,
+    rejectionReason: note,
     approvedBy: null,
     approvedAt: null,
   });
 
   await store.insertReview({
     resultId: result.id,
-    reviewerId: userId,
-    action: "result_rejected",
-    comment: reason,
-    changes: {
+    reviewerId,
+    action: "rejected",
+    note,
+    metadata: {
       resultId: result.id,
       previousStatus: result.status,
       status: "rejected",
@@ -75,13 +77,17 @@ export async function rejectResult(
     },
   });
 
-  await logResultRejection({ result: updated, previousStatus: result.status, userId });
+  await logResultRejection({
+    result: updated,
+    previousStatus: result.status,
+    reviewerId,
+  });
   await (dependencies.notifyFn ?? notify)({
     userId: result.userId,
-    title: "Extraction result rejected",
-    body: "The extracted data was rejected and requires reprocessing.",
+    title: "Result rejected",
+    body: "The extraction result has been rejected.",
     type: "warning",
-    source: "ai-extractor",
+    source: "result-review",
     link: result.projectId
       ? `/projects/${result.projectId}/results/${result.id}`
       : `/results/${result.id}`,
@@ -99,13 +105,16 @@ export async function rejectResult(
 
 async function assertCanReview(input: {
   result: ExtractionResult;
-  userId: string;
+  reviewerId: string;
   store: Pick<ResultStore, "isProjectMember">;
 }) {
   if (
-    input.result.userId === input.userId ||
+    input.result.userId === input.reviewerId ||
     (input.result.projectId &&
-      (await input.store.isProjectMember(input.result.projectId, input.userId)))
+      (await input.store.isProjectMember(
+        input.result.projectId,
+        input.reviewerId
+      )))
   ) {
     return;
   }
@@ -116,13 +125,14 @@ async function assertCanReview(input: {
 async function logResultRejection(input: {
   result: ExtractionResult;
   previousStatus: string;
-  userId: string;
+  reviewerId: string;
 }) {
   const metadata = {
     resultId: input.result.id,
     taskId: input.result.taskId,
     fileId: input.result.fileId,
     projectId: input.result.projectId,
+    reviewerId: input.reviewerId,
     previousStatus: input.previousStatus,
     status: input.result.status,
     reasonProvided: true,
@@ -130,14 +140,14 @@ async function logResultRejection(input: {
 
   await logEvent({
     audit: {
-      actorUserId: input.userId,
+      actorUserId: input.reviewerId,
       actorType: "user",
-      action: "extraction_result.rejected",
+      action: "result.rejected",
       entityType: "extraction_result",
       entityId: input.result.id,
       projectId: input.result.projectId,
       userId: input.result.userId,
-      source: "chemvault-results",
+      source: "result-review",
       severity: "warning",
       visibility: "admin",
       title: "Extraction result rejected",
@@ -146,13 +156,13 @@ async function logResultRejection(input: {
     activity: input.result.projectId
       ? {
           projectId: input.result.projectId,
-          actorUserId: input.userId,
+          actorUserId: input.reviewerId,
           actorType: "user",
-          eventType: "extraction_result.rejected",
+          eventType: "result.rejected",
           entityType: "extraction_result",
           entityId: input.result.id,
           title: "Result rejected",
-          description: "The extracted data was rejected and requires reprocessing.",
+          description: "The extraction result was rejected.",
           visibility: "project",
           severity: "warning",
           metadata,

@@ -3,6 +3,7 @@ import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
 import { assertProjectFileAccess } from "@/lib/files/access";
 import { createSupabaseFileStore } from "@/lib/files/file-store";
+import { createSupabaseResultStore } from "@/lib/results/result-store";
 import { updateFileProcessingStatus } from "@/lib/files/update-file-processing-status";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +28,11 @@ export async function GET(
       store,
     });
     const events = await store.listFileEvents(file.id);
+    const result = file.extractionTaskId
+      ? await createSupabaseResultStore().getResultByTaskId(file.extractionTaskId)
+      : null;
 
-    return NextResponse.json({ file, events });
+    return NextResponse.json({ file, events, result });
   } catch (error) {
     return jsonError(error, "Failed to load project file.");
   }

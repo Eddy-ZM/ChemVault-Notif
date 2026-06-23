@@ -896,6 +896,7 @@ export interface Database {
           confidence_score: number | null;
           model_name: string | null;
           model_version: string | null;
+          extraction_summary: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
           approved_by: string | null;
@@ -920,6 +921,7 @@ export interface Database {
           confidence_score?: number | null;
           model_name?: string | null;
           model_version?: string | null;
+          extraction_summary?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           approved_by?: string | null;
@@ -944,6 +946,7 @@ export interface Database {
           confidence_score?: number | null;
           model_name?: string | null;
           model_version?: string | null;
+          extraction_summary?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           approved_by?: string | null;
@@ -1095,6 +1098,198 @@ export interface Database {
           },
         ];
       };
+      result_items: {
+        Row: {
+          id: string;
+          result_id: string;
+          item_type: string;
+          label: string | null;
+          value: Json;
+          confidence_score: number | null;
+          page_number: number | null;
+          source_location: Json;
+          status: string;
+          reviewer_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          result_id: string;
+          item_type: string;
+          label?: string | null;
+          value?: Json;
+          confidence_score?: number | null;
+          page_number?: number | null;
+          source_location?: Json;
+          status?: string;
+          reviewer_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          result_id?: string;
+          item_type?: string;
+          label?: string | null;
+          value?: Json;
+          confidence_score?: number | null;
+          page_number?: number | null;
+          source_location?: Json;
+          status?: string;
+          reviewer_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "result_items_result_id_fkey";
+            columns: ["result_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_results";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      result_reviews: {
+        Row: {
+          id: string;
+          result_id: string;
+          reviewer_id: string;
+          action: string;
+          note: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          result_id: string;
+          reviewer_id: string;
+          action: string;
+          note?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          result_id?: string;
+          reviewer_id?: string;
+          action?: string;
+          note?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "result_reviews_result_id_fkey";
+            columns: ["result_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_results";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      result_corrections: {
+        Row: {
+          id: string;
+          result_id: string;
+          result_item_id: string | null;
+          corrected_by: string;
+          field_path: string;
+          old_value: Json | null;
+          new_value: Json | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          result_id: string;
+          result_item_id?: string | null;
+          corrected_by: string;
+          field_path: string;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          result_id?: string;
+          result_item_id?: string | null;
+          corrected_by?: string;
+          field_path?: string;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "result_corrections_result_id_fkey";
+            columns: ["result_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_results";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "result_corrections_result_item_id_fkey";
+            columns: ["result_item_id"];
+            isOneToOne: false;
+            referencedRelation: "result_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      approved_datasets: {
+        Row: {
+          id: string;
+          result_id: string | null;
+          project_id: string | null;
+          file_id: string | null;
+          user_id: string;
+          title: string;
+          description: string | null;
+          data: Json;
+          schema_version: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          result_id?: string | null;
+          project_id?: string | null;
+          file_id?: string | null;
+          user_id: string;
+          title: string;
+          description?: string | null;
+          data?: Json;
+          schema_version?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          result_id?: string | null;
+          project_id?: string | null;
+          file_id?: string | null;
+          user_id?: string;
+          title?: string;
+          description?: string | null;
+          data?: Json;
+          schema_version?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "approved_datasets_result_id_fkey";
+            columns: ["result_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_results";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1231,3 +1426,26 @@ export type ExtractionResultExportInsert =
   Database["public"]["Tables"]["extraction_result_exports"]["Insert"];
 export type ExtractionResultExportUpdate =
   Database["public"]["Tables"]["extraction_result_exports"]["Update"];
+export type ResultItemRow = Database["public"]["Tables"]["result_items"]["Row"];
+export type ResultItemInsert =
+  Database["public"]["Tables"]["result_items"]["Insert"];
+export type ResultItemUpdate =
+  Database["public"]["Tables"]["result_items"]["Update"];
+export type ResultReviewRow =
+  Database["public"]["Tables"]["result_reviews"]["Row"];
+export type ResultReviewInsert =
+  Database["public"]["Tables"]["result_reviews"]["Insert"];
+export type ResultReviewUpdate =
+  Database["public"]["Tables"]["result_reviews"]["Update"];
+export type ResultCorrectionRow =
+  Database["public"]["Tables"]["result_corrections"]["Row"];
+export type ResultCorrectionInsert =
+  Database["public"]["Tables"]["result_corrections"]["Insert"];
+export type ResultCorrectionUpdate =
+  Database["public"]["Tables"]["result_corrections"]["Update"];
+export type ApprovedDatasetRow =
+  Database["public"]["Tables"]["approved_datasets"]["Row"];
+export type ApprovedDatasetInsert =
+  Database["public"]["Tables"]["approved_datasets"]["Insert"];
+export type ApprovedDatasetUpdate =
+  Database["public"]["Tables"]["approved_datasets"]["Update"];

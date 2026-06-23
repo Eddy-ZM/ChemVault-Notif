@@ -1,4 +1,3 @@
-import webPush from "web-push";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { PushSubscriptionRow } from "@/lib/supabase/database.types";
 
@@ -80,6 +79,12 @@ export async function sendWebPushToUser({
     return summary;
   }
 
+  const webPush = await loadWebPush();
+
+  if (!webPush) {
+    return summary;
+  }
+
   webPush.setVapidDetails(
     process.env.VAPID_SUBJECT ?? "mailto:admin@chemvault.science",
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
@@ -114,6 +119,15 @@ export async function sendWebPushToUser({
   }
 
   return summary;
+}
+
+async function loadWebPush() {
+  try {
+    const webPushModule = await import("web-push");
+    return webPushModule.default;
+  } catch {
+    return null;
+  }
 }
 
 export function isInvalidPushSubscriptionError(error: unknown): boolean {

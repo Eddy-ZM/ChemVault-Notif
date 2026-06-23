@@ -178,6 +178,7 @@ export function ExtractionResultList({ projectId }: ExtractionResultListProps) {
             <option value="in_review">in_review</option>
             <option value="approved">approved</option>
             <option value="rejected">rejected</option>
+            <option value="rerun_requested">rerun_requested</option>
             <option value="exported">exported</option>
             <option value="archived">archived</option>
           </select>
@@ -248,7 +249,7 @@ function mergeResult(
 }
 
 function resultTitle(result: ExtractionResult): string {
-  const originalFileName = result.metadata.originalFileName;
+  const originalFileName = result.metadata?.originalFileName;
   if (typeof originalFileName === "string" && originalFileName.trim()) {
     return originalFileName.trim();
   }

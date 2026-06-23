@@ -574,6 +574,211 @@ values (
 )
 on conflict (id) do nothing;
 
+update public.extraction_results
+set
+  status = 'approved',
+  extraction_summary = 'Demo extraction result with compounds, measurements, HPLC calibration data, method conditions, and a reviewed approved dataset.',
+  approved_at = coalesce(approved_at, now() - interval '1 minutes'),
+  reviewed_by = coalesce(reviewed_by, '00000000-0000-0000-0000-000000000001'::uuid),
+  reviewed_at = coalesce(reviewed_at, now() - interval '4 minutes')
+where id = '40000000-0000-0000-0000-000000000001'::uuid;
+
+insert into public.result_items (
+  id,
+  result_id,
+  item_type,
+  label,
+  value,
+  confidence_score,
+  page_number,
+  source_location,
+  status,
+  reviewer_note,
+  created_at
+)
+values
+  (
+    '44000000-0000-0000-0000-000000000001'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'compound',
+    'Aspirin',
+    '{"name":"Aspirin","formula":"C9H8O4","cas":"50-78-2"}'::jsonb,
+    0.93,
+    2,
+    '{"page":2,"section":"compound list"}'::jsonb,
+    'accepted',
+    null,
+    now() - interval '13 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000002'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'measurement',
+    'Melting point',
+    '{"property":"melting point","value":"135-136","unit":"C"}'::jsonb,
+    0.82,
+    4,
+    '{"page":4,"table":"physical properties"}'::jsonb,
+    'corrected',
+    'Corrected the unit from K to C.',
+    now() - interval '10 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000003'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'table',
+    'HPLC calibration data',
+    '{"caption":"HPLC calibration data","rows":[{"concentration_mg_ml":0.1,"area":2042},{"concentration_mg_ml":0.5,"area":10112}]}'::jsonb,
+    0.91,
+    5,
+    '{"page":5,"tableIndex":1}'::jsonb,
+    'accepted',
+    null,
+    now() - interval '9 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000004'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'condition',
+    'Solvent ethanol',
+    '{"solvent":"ethanol","temperature_c":25,"duration_min":30}'::jsonb,
+    0.87,
+    3,
+    '{"page":3,"paragraph":2}'::jsonb,
+    'accepted',
+    null,
+    now() - interval '8 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000005'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'method',
+    'HPLC method',
+    '{"instrument":"HPLC","column":"C18","mobile_phase":"water/acetonitrile","flow_ml_min":1}'::jsonb,
+    0.89,
+    5,
+    '{"page":5,"method":"HPLC"}'::jsonb,
+    'accepted',
+    null,
+    now() - interval '7 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000006'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'compound',
+    'Low-confidence impurity',
+    '{"name":"Unknown impurity","formula":null,"note":"weak OCR region"}'::jsonb,
+    0.42,
+    6,
+    '{"page":6,"region":"low contrast chromatogram"}'::jsonb,
+    'rejected',
+    'Rejected due to weak source evidence.',
+    now() - interval '6 minutes'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000007'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'citation',
+    'Seed catalyst screening paper',
+    '{"title":"Seed catalyst screening paper","doi":"10.0000/chemvault.seed"}'::jsonb,
+    0.72,
+    1,
+    '{"page":1,"section":"references"}'::jsonb,
+    'accepted',
+    null,
+    now() - interval '5 minutes'
+  )
+on conflict (id) do nothing;
+
+insert into public.result_reviews (
+  id,
+  result_id,
+  reviewer_id,
+  action,
+  note,
+  metadata,
+  created_at
+)
+values
+  (
+    '45000000-0000-0000-0000-000000000001'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'started_review',
+    'Started demo human review.',
+    '{"seed":true,"status":"in_review"}'::jsonb,
+    now() - interval '4 minutes'
+  ),
+  (
+    '45000000-0000-0000-0000-000000000002'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'item_corrected',
+    'Corrected melting point unit.',
+    '{"seed":true,"itemId":"44000000-0000-0000-0000-000000000002"}'::jsonb,
+    now() - interval '3 minutes'
+  ),
+  (
+    '45000000-0000-0000-0000-000000000003'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'approved',
+    'Approved seed dataset for review workflow testing.',
+    '{"seed":true,"datasetId":"46000000-0000-0000-0000-000000000001"}'::jsonb,
+    now() - interval '1 minutes'
+  )
+on conflict (id) do nothing;
+
+insert into public.result_corrections (
+  id,
+  result_id,
+  result_item_id,
+  corrected_by,
+  field_path,
+  old_value,
+  new_value,
+  reason,
+  created_at
+)
+values (
+  '45500000-0000-0000-0000-000000000001'::uuid,
+  '40000000-0000-0000-0000-000000000001'::uuid,
+  '44000000-0000-0000-0000-000000000002'::uuid,
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  'value.unit',
+  '"K"'::jsonb,
+  '"C"'::jsonb,
+  'Fixed unit from K to C.',
+  now() - interval '3 minutes'
+)
+on conflict (id) do nothing;
+
+insert into public.approved_datasets (
+  id,
+  result_id,
+  project_id,
+  file_id,
+  user_id,
+  title,
+  description,
+  data,
+  schema_version,
+  created_at
+)
+values (
+  '46000000-0000-0000-0000-000000000001'::uuid,
+  '40000000-0000-0000-0000-000000000001'::uuid,
+  '20000000-0000-0000-0000-000000000001'::uuid,
+  '30000000-0000-0000-0000-000000000001'::uuid,
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  'Approved dataset: catalyst-screening.pdf',
+  'Seed approved dataset for human-in-the-loop validation.',
+  '{"compounds":[{"name":"Aspirin","formula":"C9H8O4"}],"measurements":[{"property":"melting point","value":"135-136","unit":"C"}],"methods":[{"instrument":"HPLC","column":"C18"}]}'::jsonb,
+  '1.0',
+  now() - interval '1 minutes'
+)
+on conflict (id) do nothing;
+
 insert into public.conversations (
   id,
   type,

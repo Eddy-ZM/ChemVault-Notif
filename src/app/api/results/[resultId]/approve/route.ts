@@ -23,7 +23,7 @@ export async function POST(
     await assertResultAccess({ resultId, user, store });
 
     const body = await parseJson(request);
-    const result = await approveResult(
+    const dataset = await approveResult(
       {
         resultId,
         userId: user.id,
@@ -31,8 +31,9 @@ export async function POST(
       },
       { store }
     );
+    const result = await store.getResult(resultId);
 
-    return NextResponse.json({ result });
+    return NextResponse.json({ dataset, result });
   } catch (error) {
     return jsonError(error, "Failed to approve extraction result.");
   }

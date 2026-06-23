@@ -22,11 +22,15 @@ import type {
 import { ExtractionResultStatusBadge } from "./ExtractionResultStatusBadge";
 
 interface ResultItemEditorProps {
+  projectId: string;
+  resultId: string;
   item: ExtractionResultItem | null;
   onItemUpdated: (item: ExtractionResultItem) => void;
 }
 
 export function ResultItemEditor({
+  projectId,
+  resultId,
   item,
   onItemUpdated,
 }: ResultItemEditorProps) {
@@ -52,6 +56,8 @@ export function ResultItemEditor({
   return (
     <ResultItemEditorForm
       key={item.id}
+      projectId={projectId}
+      resultId={resultId}
       item={item}
       onItemUpdated={onItemUpdated}
     />
@@ -59,9 +65,13 @@ export function ResultItemEditor({
 }
 
 function ResultItemEditorForm({
+  projectId,
+  resultId,
   item,
   onItemUpdated,
 }: {
+  projectId: string;
+  resultId: string;
   item: ExtractionResultItem;
   onItemUpdated: (item: ExtractionResultItem) => void;
 }) {
@@ -82,16 +92,20 @@ function ResultItemEditorForm({
     setSavingStatus(status);
 
     try {
-      const response = await fetch(`/api/results/items/${item.id}`, {
+      const response = await fetch(
+        `/api/projects/${projectId}/results/${resultId}/items/${item.id}`,
+        {
         method: "PATCH",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           value: status === "corrected" ? parsed.value : item.value,
           status,
-          comment,
+          reviewerNote: comment,
+          reason: comment,
         }),
-      });
+        }
+      );
       const data = (await response.json()) as {
         item?: ExtractionResultItem;
         error?: string;
@@ -164,7 +178,7 @@ function ResultItemEditorForm({
           />
         </label>
 
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           <Button
             type="button"
             variant="outline"
@@ -202,6 +216,19 @@ function ResultItemEditorForm({
               <X data-icon="inline-start" />
             )}
             Reject
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={Boolean(savingStatus) || !parsed.ok}
+            onClick={() => void save("uncertain")}
+          >
+            {savingStatus === "uncertain" ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <FileJson data-icon="inline-start" />
+            )}
+            Uncertain
           </Button>
         </div>
       </CardContent>

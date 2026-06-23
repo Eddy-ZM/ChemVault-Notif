@@ -1,50 +1,52 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { History, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { formatRelativeTime } from "@/components/notifications/time";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type {
+  ApprovedDatasetRow,
   Database,
-  ExtractionResultItemRow,
   ExtractionResultRow,
+  ResultCorrectionRow,
+  ResultItemRow,
+  ResultReviewRow,
 } from "@/lib/supabase/database.types";
 import {
+  toApprovedDataset,
   toExtractionResult,
   toExtractionResultItem,
+  toExtractionResultReview,
+  toResultCorrection,
 } from "@/lib/results/transform";
 import type {
+  ApprovedDataset,
   ExtractionResult,
   ExtractionResultExport,
   ExtractionResultItem,
   ExtractionResultReview,
+  ResultCorrection,
 } from "@/types/extraction-results";
+import { ApprovedDatasetView } from "./ApprovedDatasetView";
 import { ResultExportPanel } from "./ResultExportPanel";
 import { ResultItemEditor } from "./ResultItemEditor";
 import { ResultItemTable } from "./ResultItemTable";
 import { ResultReviewPanel } from "./ResultReviewPanel";
+import { ResultReviewTimeline } from "./ResultReviewTimeline";
 
 interface ResultDetailResponse {
   result: ExtractionResult;
   items: ExtractionResultItem[];
   reviews: ExtractionResultReview[];
+  corrections: ResultCorrection[];
+  approvedDataset: ApprovedDataset | null;
   exports: ExtractionResultExport[];
 }
 
@@ -62,6 +64,10 @@ export function ResultReviewWorkspace({
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [items, setItems] = useState<ExtractionResultItem[]>([]);
   const [reviews, setReviews] = useState<ExtractionResultReview[]>([]);
+  const [corrections, setCorrections] = useState<ResultCorrection[]>([]);
+  const [approvedDataset, setApprovedDataset] = useState<ApprovedDataset | null>(
+    null
+  );
   const [exports, setExports] = useState<ExtractionResultExport[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +97,8 @@ export function ResultReviewWorkspace({
       setResult(data.result);
       setItems(data.items);
       setReviews(data.reviews);
+      setCorrections(data.corrections);
+      setApprovedDataset(data.approvedDataset);
       setExports(data.exports);
       setSelectedItemId((current) => current ?? data.items[0]?.id ?? null);
       setError(null);
@@ -136,7 +144,7 @@ export function ResultReviewWorkspace({
             {
               event: "*",
               schema: "public",
-              table: "extraction_result_items",
+              table: "result_items",
               filter: `result_id=eq.${resultId}`,
             },
             (payload) => {
@@ -148,9 +156,55 @@ export function ResultReviewWorkspace({
               }
 
               const item = toExtractionResultItem(
-                payload.new as ExtractionResultItemRow
+                payload.new as ResultItemRow
               );
               setItems((current) => mergeItem(item, current));
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "result_reviews",
+              filter: `result_id=eq.${resultId}`,
+            },
+            (payload) => {
+              const review = toExtractionResultReview(
+                payload.new as ResultReviewRow
+              );
+              setReviews((current) => mergeReview(review, current));
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "result_corrections",
+              filter: `result_id=eq.${resultId}`,
+            },
+            (payload) => {
+              const correction = toResultCorrection(
+                payload.new as ResultCorrectionRow
+              );
+              setCorrections((current) =>
+                mergeCorrection(correction, current)
+              );
+            }
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "approved_datasets",
+              filter: `result_id=eq.${resultId}`,
+            },
+            (payload) => {
+              setApprovedDataset(
+                toApprovedDataset(payload.new as ApprovedDatasetRow)
+              );
             }
           )
           .subscribe();
@@ -224,6 +278,8 @@ export function ResultReviewWorkspace({
           onSelectItem={(item) => setSelectedItemId(item.id)}
         />
         <ResultItemEditor
+          projectId={projectId}
+          resultId={resultId}
           item={selectedItem}
           onItemUpdated={(item) => {
             setItems((current) => mergeItem(item, current));
@@ -231,14 +287,19 @@ export function ResultReviewWorkspace({
             void refresh();
           }}
         />
-        <ReviewHistory reviews={reviews} />
+        <ResultReviewTimeline reviews={reviews} corrections={corrections} />
+        <ApprovedDatasetView dataset={approvedDataset} />
       </div>
       <aside className="flex flex-col gap-6">
         <ResultReviewPanel
+          projectId={projectId}
           result={result}
           items={items}
-          onResultChange={(nextResult) => {
+          onResultChange={(nextResult, nextDataset) => {
             setResult(nextResult);
+            if (nextDataset) {
+              setApprovedDataset(nextDataset);
+            }
             void refresh();
           }}
         />
@@ -269,41 +330,32 @@ function mergeItem(
   );
 }
 
-function ReviewHistory({ reviews }: { reviews: ExtractionResultReview[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <History className="size-4" aria-hidden="true" />
-          Review history
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {reviews.length === 0 ? (
-          <div className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-            Review actions will be recorded here.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Action</TableHead>
-                <TableHead>Reviewer</TableHead>
-                <TableHead>When</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reviews.map((review) => (
-                <TableRow key={review.id}>
-                  <TableCell>{review.action}</TableCell>
-                  <TableCell>{review.reviewerId}</TableCell>
-                  <TableCell>{formatRelativeTime(review.createdAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+function mergeReview(
+  review: ExtractionResultReview,
+  reviews: ExtractionResultReview[]
+): ExtractionResultReview[] {
+  const next = reviews.some((current) => current.id === review.id)
+    ? reviews.map((current) => (current.id === review.id ? review : current))
+    : [review, ...reviews];
+
+  return next.sort(
+    (left, right) =>
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+  );
+}
+
+function mergeCorrection(
+  correction: ResultCorrection,
+  corrections: ResultCorrection[]
+): ResultCorrection[] {
+  const next = corrections.some((current) => current.id === correction.id)
+    ? corrections.map((current) =>
+        current.id === correction.id ? correction : current
+      )
+    : [correction, ...corrections];
+
+  return next.sort(
+    (left, right) =>
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
   );
 }

@@ -72,10 +72,12 @@ export function ResultItemTable({
               <option value="table">table</option>
               <option value="compound">compound</option>
               <option value="reaction">reaction</option>
-              <option value="property">property</option>
-              <option value="experimental_condition">experimental_condition</option>
               <option value="measurement">measurement</option>
-              <option value="reference">reference</option>
+              <option value="spectrum">spectrum</option>
+              <option value="property">property</option>
+              <option value="method">method</option>
+              <option value="condition">condition</option>
+              <option value="citation">citation</option>
               <option value="note">note</option>
             </select>
           </label>
@@ -95,6 +97,7 @@ export function ResultItemTable({
               <option value="accepted">accepted</option>
               <option value="corrected">corrected</option>
               <option value="rejected">rejected</option>
+              <option value="uncertain">uncertain</option>
             </select>
           </label>
         </div>
@@ -115,6 +118,7 @@ export function ResultItemTable({
                   <TableHead>Item</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Page</TableHead>
                   <TableHead>Confidence</TableHead>
                 </TableRow>
               </TableHeader>
@@ -136,6 +140,7 @@ export function ResultItemTable({
                     <TableCell>
                       <ExtractionResultStatusBadge status={item.status} />
                     </TableCell>
+                    <TableCell>{item.pageNumber ?? "n/a"}</TableCell>
                     <TableCell>{formatConfidence(item.confidenceScore)}</TableCell>
                   </TableRow>
                 ))}

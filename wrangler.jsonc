@@ -1,11 +1,26 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "chemvault-notif",
+  "name": "chemvault-notify",
+  "account_id": "20f69e8d2aebbadbff2b6ffa36efee50",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-06-22",
+  "compatibility_date": "2026-06-23",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  // Set production values in Cloudflare dashboard or with wrangler secrets.
+  // Keep SUPABASE_SERVICE_ROLE_KEY, VAPID_PRIVATE_KEY, and internal API keys
+  // out of this committed file.
+  "vars": {
+    "NEXT_PUBLIC_CHEMVAULT_FILES_BUCKET": "project-files",
+    "CHEMVAULT_APP_URL": "https://notify.chemvault.science",
+    "CHEMVAULT_ADMIN_EMAILS": "admin@chemvault.science",
+    "VAPID_SUBJECT": "mailto:admin@chemvault.science"
   }
 }

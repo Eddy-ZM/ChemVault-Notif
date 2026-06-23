@@ -4,12 +4,20 @@ import { logEvent } from "@/lib/audit/log-event";
 import { updateFileProcessingStatus } from "@/lib/files/update-file-processing-status";
 import { createExtractionResult } from "@/lib/results/create-extraction-result";
 import type { NotificationPayload } from "@/lib/notifications/types";
+import type { Json } from "@/lib/supabase/database.types";
 import type { AuditSeverity } from "@/types/audit";
 import type {
   CreateExtractionResultInput,
   ExtractionResult,
   ExtractionStructuredData,
+  ResultItemInput,
 } from "@/types/extraction-results";
+import {
+  RESULT_ITEM_STATUSES,
+  RESULT_ITEM_TYPES,
+  type ResultItemStatus,
+  type ResultItemType,
+} from "@/types/results";
 import type { UpdateFileProcessingStatusInput } from "@/types/files";
 import {
   buildExtractionNotificationPayload,
@@ -151,9 +159,13 @@ function toExtractionResultInput(
     modelVersion: stringMetadata(
       task.metadata.modelVersion ?? task.metadata.model_version
     ),
+    extractionSummary: stringMetadata(
+      task.metadata.extractionSummary ?? task.metadata.extraction_summary
+    ),
     confidenceScore: numberMetadata(
       task.metadata.confidenceScore ?? task.metadata.confidence_score
     ),
+    items: resultItemsMetadata(task.metadata.items),
     metadata: {
       taskId: task.id,
       fileId: task.fileId,
@@ -161,6 +173,47 @@ function toExtractionResultInput(
       source: "task_status_completed",
     },
   };
+}
+
+function resultItemsMetadata(value: unknown): ResultItemInput[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value
+    .filter(objectRecord)
+    .map((item) => ({
+      itemType: resultItemTypeMetadata(item.itemType ?? item.item_type),
+      label: stringMetadata(item.label),
+      value: (item.value ?? {}) as Json,
+      confidenceScore: numberMetadata(item.confidenceScore),
+      pageNumber: integerMetadata(item.pageNumber ?? item.page_number),
+      sourceLocation: objectMetadata(
+        item.sourceLocation ?? item.source_location
+      ) ?? {},
+      status: resultItemStatusMetadata(item.status),
+      reviewerNote: stringMetadata(item.reviewerNote ?? item.reviewer_note),
+    }));
+}
+
+function resultItemTypeMetadata(value: unknown): ResultItemType {
+  return RESULT_ITEM_TYPES.includes(value as ResultItemType)
+    ? (value as ResultItemType)
+    : "note";
+}
+
+function resultItemStatusMetadata(value: unknown): ResultItemStatus {
+  return RESULT_ITEM_STATUSES.includes(value as ResultItemStatus)
+    ? (value as ResultItemStatus)
+    : "pending";
+}
+
+function objectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function integerMetadata(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
 }
 
 function objectMetadata(value: unknown): ExtractionStructuredData | null {

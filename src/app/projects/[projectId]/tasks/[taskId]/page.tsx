@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import type { Route } from "next";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { ExtractionTaskStatus } from "@/components/tasks/ExtractionTaskStatus";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
+import { createSupabaseResultStore } from "@/lib/results/result-store";
 import { toChemVaultExtractionTask } from "@/lib/tasks/types";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +46,7 @@ export default async function ProjectTaskDetailsPage({
   }
 
   const task = toChemVaultExtractionTask(data);
+  const result = await createSupabaseResultStore().getResultByTaskId(task.id);
 
   return (
     <main className="min-h-screen bg-background">
@@ -60,14 +64,34 @@ export default async function ProjectTaskDetailsPage({
             </div>
           </div>
           <Button variant="outline" asChild>
-            <a href={`/projects/${projectId}/tasks`}>
+            <Link href={`/projects/${projectId}/tasks` as Route}>
               <ArrowLeft data-icon="inline-start" />
               All tasks
-            </a>
+            </Link>
           </Button>
         </div>
 
         <ExtractionTaskStatus task={task} />
+
+        {result ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Extraction result</CardTitle>
+              <CardDescription>
+                Human review workspace generated from this task.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" asChild>
+                <Link
+                  href={`/projects/${projectId}/results/${result.id}` as Route}
+                >
+                  Open result review
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>

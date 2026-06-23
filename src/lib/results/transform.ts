@@ -1,29 +1,33 @@
 import type {
+  ApprovedDatasetRow,
   ExtractionResultExportRow,
-  ExtractionResultItemRow,
-  ExtractionResultReviewRow,
   ExtractionResultRow,
   Json,
+  ResultCorrectionRow,
+  ResultItemRow,
+  ResultReviewRow,
 } from "@/lib/supabase/database.types";
 import {
+  RESULT_ITEM_STATUSES,
+  RESULT_ITEM_TYPES,
+  RESULT_REVIEW_ACTIONS,
   EXTRACTION_EXPORT_STATUSES,
   EXTRACTION_EXPORT_TYPES,
-  EXTRACTION_RESULT_ITEM_STATUSES,
-  EXTRACTION_RESULT_ITEM_TYPES,
   EXTRACTION_RESULT_STATUSES,
-  EXTRACTION_REVIEW_ACTIONS,
+  type ApprovedDataset,
   type ExtractionExportStatus,
   type ExtractionExportType,
   type ExtractionResult,
   type ExtractionResultExport,
-  type ExtractionResultItem,
-  type ExtractionResultItemStatus,
-  type ExtractionResultItemType,
   type ExtractionResultMetadata,
-  type ExtractionResultReview,
   type ExtractionResultStatus,
-  type ExtractionReviewAction,
   type ExtractionStructuredData,
+  type ResultCorrection,
+  type ResultItem,
+  type ResultItemStatus,
+  type ResultItemType,
+  type ResultReview,
+  type ResultReviewAction,
 } from "@/types/extraction-results";
 
 export function toExtractionResult(row: ExtractionResultRow): ExtractionResult {
@@ -40,6 +44,7 @@ export function toExtractionResult(row: ExtractionResultRow): ExtractionResult {
     confidenceScore: row.confidence_score,
     modelName: row.model_name,
     modelVersion: row.model_version,
+    extractionSummary: row.extraction_summary,
     reviewedBy: row.reviewed_by,
     reviewedAt: row.reviewed_at,
     approvedBy: row.approved_by,
@@ -54,8 +59,8 @@ export function toExtractionResult(row: ExtractionResultRow): ExtractionResult {
 }
 
 export function toExtractionResultItem(
-  row: ExtractionResultItemRow
-): ExtractionResultItem {
+  row: ResultItemRow
+): ResultItem {
   return {
     id: row.id,
     resultId: row.result_id,
@@ -64,28 +69,63 @@ export function toExtractionResultItem(
       : "note",
     label: row.label,
     value: row.value,
-    originalValue: row.original_value,
     confidenceScore: row.confidence_score,
+    pageNumber: row.page_number,
+    sourceLocation: normalizeResultMetadata(row.source_location),
     status: isExtractionResultItemStatus(row.status) ? row.status : "pending",
-    reviewedBy: row.reviewed_by,
-    reviewedAt: row.reviewed_at,
-    metadata: normalizeResultMetadata(row.metadata),
+    reviewerNote: row.reviewer_note,
+    originalValue: row.value,
+    reviewedBy: null,
+    reviewedAt: null,
+    metadata: normalizeResultMetadata(row.source_location),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 export function toExtractionResultReview(
-  row: ExtractionResultReviewRow
-): ExtractionResultReview {
+  row: ResultReviewRow
+): ResultReview {
   return {
     id: row.id,
     resultId: row.result_id,
     reviewerId: row.reviewer_id,
-    action: isExtractionReviewAction(row.action) ? row.action : "review_started",
-    comment: row.comment,
-    changes: normalizeResultMetadata(row.changes),
+    action: isExtractionReviewAction(row.action) ? row.action : "started_review",
+    note: row.note,
+    metadata: normalizeResultMetadata(row.metadata),
+    comment: row.note,
+    changes: normalizeResultMetadata(row.metadata),
     createdAt: row.created_at,
+  };
+}
+
+export function toResultCorrection(row: ResultCorrectionRow): ResultCorrection {
+  return {
+    id: row.id,
+    resultId: row.result_id,
+    resultItemId: row.result_item_id,
+    correctedBy: row.corrected_by,
+    fieldPath: row.field_path,
+    oldValue: row.old_value,
+    newValue: row.new_value,
+    reason: row.reason,
+    createdAt: row.created_at,
+  };
+}
+
+export function toApprovedDataset(row: ApprovedDatasetRow): ApprovedDataset {
+  return {
+    id: row.id,
+    resultId: row.result_id,
+    projectId: row.project_id,
+    fileId: row.file_id,
+    userId: row.user_id,
+    title: row.title,
+    description: row.description,
+    data: normalizeResultMetadata(row.data),
+    schemaVersion: row.schema_version,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -118,28 +158,28 @@ export function isExtractionResultStatus(
 
 export function isExtractionResultItemStatus(
   value: unknown
-): value is ExtractionResultItemStatus {
+): value is ResultItemStatus {
   return (
     typeof value === "string" &&
-    (EXTRACTION_RESULT_ITEM_STATUSES as readonly string[]).includes(value)
+    (RESULT_ITEM_STATUSES as readonly string[]).includes(value)
   );
 }
 
 export function isExtractionResultItemType(
   value: unknown
-): value is ExtractionResultItemType {
+): value is ResultItemType {
   return (
     typeof value === "string" &&
-    (EXTRACTION_RESULT_ITEM_TYPES as readonly string[]).includes(value)
+    (RESULT_ITEM_TYPES as readonly string[]).includes(value)
   );
 }
 
 export function isExtractionReviewAction(
   value: unknown
-): value is ExtractionReviewAction {
+): value is ResultReviewAction {
   return (
     typeof value === "string" &&
-    (EXTRACTION_REVIEW_ACTIONS as readonly string[]).includes(value)
+    (RESULT_REVIEW_ACTIONS as readonly string[]).includes(value)
   );
 }
 

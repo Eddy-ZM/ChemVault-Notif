@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { Activity, ArrowLeft, Beaker, Files } from "lucide-react";
+import { Activity, ArrowLeft, Beaker, Database, Files } from "lucide-react";
 import { ExtractionResultList } from "@/components/results/ExtractionResultList";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,12 @@ export default async function ProjectResultsPage({
               <Link href={`/projects/${projectId}/files` as Route}>
                 <Files data-icon="inline-start" />
                 Files
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/projects/${projectId}/datasets` as Route}>
+                <Database data-icon="inline-start" />
+                Datasets
               </Link>
             </Button>
             <Button variant="outline" asChild>
