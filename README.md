@@ -452,3 +452,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+## License
+
+This repository is source-available but not open source. Public visibility is
+for review and reference only; no rights are granted to use, copy, modify,
+distribute, host, deploy, or create derivative works without prior written
+permission from Ziwen Mu or the repository owner.
+
+See [LICENSE](./LICENSE). All rights reserved.
