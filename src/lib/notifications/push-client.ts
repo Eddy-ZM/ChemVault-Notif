@@ -9,9 +9,9 @@ export function isPushSupported(): boolean {
   return (
     typeof window !== "undefined" &&
     typeof navigator !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
+    Boolean(navigator.serviceWorker) &&
+    typeof window.PushManager !== "undefined" &&
+    typeof window.Notification !== "undefined"
   );
 }
 
@@ -23,13 +23,15 @@ export function getPushPermissionState(): PushPermissionState {
   return Notification.permission;
 }
 
-export function urlBase64ToUint8Array(base64String: string): Uint8Array {
+export function urlBase64ToUint8Array(
+  base64String: string
+): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = `${base64String}${padding}`
     .replace(/-/g, "+")
     .replace(/_/g, "/");
   const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+  const outputArray = new Uint8Array(new ArrayBuffer(rawData.length));
 
   for (let index = 0; index < rawData.length; index += 1) {
     outputArray[index] = rawData.charCodeAt(index);

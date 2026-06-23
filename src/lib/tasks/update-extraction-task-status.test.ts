@@ -63,6 +63,7 @@ describe("updateExtractionTaskStatus", () => {
     const task = createTask();
     const { store, updates } = createMemoryStore(task);
     const notifications: NotificationPayload[] = [];
+    const taskMessages: ChemVaultExtractionTask[] = [];
 
     const updated = await updateExtractionTaskStatus(
       {
@@ -92,6 +93,10 @@ describe("updateExtractionTaskStatus", () => {
             createdAt: "2026-06-22T04:15:00.000Z",
           };
         },
+        createTaskMessageFn: async (messageTask) => {
+          taskMessages.push(messageTask);
+        },
+        updateFileProcessingStatusFn: async () => {},
       }
     );
 
@@ -118,12 +123,14 @@ describe("updateExtractionTaskStatus", () => {
         tablesDetected: 3,
       },
     });
+    expect(taskMessages).toEqual([updated]);
   });
 
   it("does not notify when only progress changes within the same status", async () => {
     const task = createTask({ status: "processing", progress: 20 });
     const { store } = createMemoryStore(task);
     const notifications: NotificationPayload[] = [];
+    const taskMessages: ChemVaultExtractionTask[] = [];
 
     const updated = await updateExtractionTaskStatus(
       {
@@ -137,11 +144,19 @@ describe("updateExtractionTaskStatus", () => {
           notifications.push(payload);
           throw new Error("Should not notify.");
         },
+        createTaskMessageFn: async (messageTask) => {
+          taskMessages.push(messageTask);
+          throw new Error("Should not create task message.");
+        },
+        updateFileProcessingStatusFn: async () => {
+          throw new Error("Should not update file processing status.");
+        },
       }
     );
 
     expect(updated.progress).toBe(30);
     expect(notifications).toHaveLength(0);
+    expect(taskMessages).toHaveLength(0);
   });
 
   it("stores failed task error details and sends the failed notification", async () => {
@@ -174,6 +189,8 @@ describe("updateExtractionTaskStatus", () => {
             createdAt: "2026-06-22T04:15:00.000Z",
           };
         },
+        createTaskMessageFn: async () => {},
+        updateFileProcessingStatusFn: async () => {},
       }
     );
 

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import type { Route } from "next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,8 @@ import type {
 } from "@/lib/notifications/types";
 import { notificationTypes } from "@/lib/notifications/transform";
 import { NotificationItem } from "./NotificationItem";
+import { SendTestNotificationButton } from "./SendTestNotificationButton";
+import { SystemNotificationToggle } from "./SystemNotificationToggle";
 
 type ReadFilter = "all" | "read" | "unread";
 
@@ -229,6 +233,11 @@ export function NotificationCenterPage() {
               <RefreshCw data-icon="inline-start" />
               Refresh
             </Button>
+            <Button variant="outline" asChild>
+              <Link href={"/settings/notifications" as Route}>
+                Notification preferences
+              </Link>
+            </Button>
             <Button
               type="button"
               onClick={markAllAsRead}
@@ -336,6 +345,13 @@ export function NotificationCenterPage() {
             )}
           </CardContent>
         </Card>
+
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+          <SystemNotificationToggle />
+          <div className="lg:pt-6">
+            <SendTestNotificationButton />
+          </div>
+        </div>
       </div>
     </main>
   );

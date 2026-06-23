@@ -13,6 +13,16 @@ create table if not exists public.push_subscriptions (
 create index if not exists push_subscriptions_user_created_idx
   on public.push_subscriptions (user_id, created_at desc);
 
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 drop trigger if exists set_push_subscriptions_updated_at on public.push_subscriptions;
 create trigger set_push_subscriptions_updated_at
   before update on public.push_subscriptions

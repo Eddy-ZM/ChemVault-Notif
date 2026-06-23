@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { Activity, Database, FlaskConical, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,9 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
+              <Link href={"/conversations" as Route}>Messages</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link href="/notifications">View all</Link>
             </Button>
             <NotificationBell />
@@ -75,6 +79,9 @@ export default function Home() {
             <div className="flex flex-wrap gap-3">
               <Button asChild>
                 <Link href="/notifications">Open notification center</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={"/conversations" as Route}>Open messages</Link>
               </Button>
               <Button variant="outline" asChild>
                 <a href="#integration">Integration shape</a>
