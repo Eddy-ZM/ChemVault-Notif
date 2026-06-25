@@ -165,6 +165,8 @@ function requiredScope(eventType: string): ApiKeyScope {
       return "files:update";
     case "result.created":
       return "results:create";
+    case "feature_update.published":
+      return "feature_updates:publish";
     default:
       return "webhooks:send";
   }

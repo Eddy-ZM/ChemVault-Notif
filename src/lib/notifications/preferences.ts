@@ -240,6 +240,31 @@ export function mapNotificationToCategory(
     return "project_messages";
   }
 
+  if (source === "product-updates") {
+    const category =
+      notification.metadata && typeof notification.metadata.category === "string"
+        ? notification.metadata.category
+        : "";
+
+    switch (category) {
+      case "new_feature":
+      case "improvement":
+      case "experimental":
+        return "marketing";
+      case "security":
+        return "security";
+      case "bug_fix":
+      case "maintenance":
+      case "breaking_change":
+      case "deprecation":
+        return "system_alerts";
+      case "announcement":
+        return "admin_announcements";
+      default:
+        return "system_alerts";
+    }
+  }
+
   if (source === "admin" || source.startsWith("admin-")) {
     return "admin_announcements";
   }

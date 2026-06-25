@@ -1290,6 +1290,197 @@ export interface Database {
           },
         ];
       };
+      feature_updates: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          summary: string;
+          content: string;
+          category: string;
+          status: string;
+          visibility: string;
+          version: string | null;
+          release_date: string | null;
+          published_at: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          slug: string;
+          summary: string;
+          content: string;
+          category?: string;
+          status?: string;
+          visibility?: string;
+          version?: string | null;
+          release_date?: string | null;
+          published_at?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          slug?: string;
+          summary?: string;
+          content?: string;
+          category?: string;
+          status?: string;
+          visibility?: string;
+          version?: string | null;
+          release_date?: string | null;
+          published_at?: string | null;
+          created_by?: string | null;
+          updated_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      feature_update_targets: {
+        Row: {
+          id: string;
+          feature_update_id: string;
+          target_type: string;
+          target_payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature_update_id: string;
+          target_type?: string;
+          target_payload?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          feature_update_id?: string;
+          target_type?: string;
+          target_payload?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feature_update_targets_feature_update_id_fkey";
+            columns: ["feature_update_id"];
+            isOneToOne: false;
+            referencedRelation: "feature_updates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feature_update_reads: {
+        Row: {
+          id: string;
+          feature_update_id: string;
+          user_id: string;
+          read_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature_update_id: string;
+          user_id: string;
+          read_at?: string;
+        };
+        Update: {
+          id?: string;
+          feature_update_id?: string;
+          user_id?: string;
+          read_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feature_update_reads_feature_update_id_fkey";
+            columns: ["feature_update_id"];
+            isOneToOne: false;
+            referencedRelation: "feature_updates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feature_update_reactions: {
+        Row: {
+          id: string;
+          feature_update_id: string;
+          user_id: string;
+          reaction: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature_update_id: string;
+          user_id: string;
+          reaction: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          feature_update_id?: string;
+          user_id?: string;
+          reaction?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feature_update_reactions_feature_update_id_fkey";
+            columns: ["feature_update_id"];
+            isOneToOne: false;
+            referencedRelation: "feature_updates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feature_update_feedback: {
+        Row: {
+          id: string;
+          feature_update_id: string;
+          user_id: string;
+          feedback: string;
+          rating: number | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature_update_id: string;
+          user_id: string;
+          feedback: string;
+          rating?: number | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          feature_update_id?: string;
+          user_id?: string;
+          feedback?: string;
+          rating?: number | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feature_update_feedback_feature_update_id_fkey";
+            columns: ["feature_update_id"];
+            isOneToOne: false;
+            referencedRelation: "feature_updates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1449,3 +1640,33 @@ export type ApprovedDatasetInsert =
   Database["public"]["Tables"]["approved_datasets"]["Insert"];
 export type ApprovedDatasetUpdate =
   Database["public"]["Tables"]["approved_datasets"]["Update"];
+export type FeatureUpdateRow =
+  Database["public"]["Tables"]["feature_updates"]["Row"];
+export type FeatureUpdateInsert =
+  Database["public"]["Tables"]["feature_updates"]["Insert"];
+export type FeatureUpdateUpdate =
+  Database["public"]["Tables"]["feature_updates"]["Update"];
+export type FeatureUpdateTargetRow =
+  Database["public"]["Tables"]["feature_update_targets"]["Row"];
+export type FeatureUpdateTargetInsert =
+  Database["public"]["Tables"]["feature_update_targets"]["Insert"];
+export type FeatureUpdateTargetUpdate =
+  Database["public"]["Tables"]["feature_update_targets"]["Update"];
+export type FeatureUpdateReadRow =
+  Database["public"]["Tables"]["feature_update_reads"]["Row"];
+export type FeatureUpdateReadInsert =
+  Database["public"]["Tables"]["feature_update_reads"]["Insert"];
+export type FeatureUpdateReadUpdate =
+  Database["public"]["Tables"]["feature_update_reads"]["Update"];
+export type FeatureUpdateReactionRow =
+  Database["public"]["Tables"]["feature_update_reactions"]["Row"];
+export type FeatureUpdateReactionInsert =
+  Database["public"]["Tables"]["feature_update_reactions"]["Insert"];
+export type FeatureUpdateReactionUpdate =
+  Database["public"]["Tables"]["feature_update_reactions"]["Update"];
+export type FeatureUpdateFeedbackRow =
+  Database["public"]["Tables"]["feature_update_feedback"]["Row"];
+export type FeatureUpdateFeedbackInsert =
+  Database["public"]["Tables"]["feature_update_feedback"]["Insert"];
+export type FeatureUpdateFeedbackUpdate =
+  Database["public"]["Tables"]["feature_update_feedback"]["Update"];

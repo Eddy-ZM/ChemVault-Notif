@@ -2,6 +2,13 @@ import { createMessage } from "@/lib/messages/create-message";
 import { logAuditEvent } from "@/lib/audit/log-audit-event";
 import { registerUploadedFile } from "@/lib/files/register-uploaded-file";
 import { updateFileProcessingStatus } from "@/lib/files/update-file-processing-status";
+import { createFeatureUpdate } from "@/lib/feature-updates/create-feature-update";
+import { publishFeatureUpdate } from "@/lib/feature-updates/publish-feature-update";
+import { normalizeFeatureUpdateTargetInput } from "@/lib/feature-updates/feature-update-store";
+import {
+  isFeatureUpdateCategory,
+  isFeatureUpdateVisibility,
+} from "@/lib/feature-updates/transform";
 import { NotificationError } from "@/lib/notifications/errors";
 import { notify } from "@/lib/notifications/notify";
 import { createExtractionResult } from "@/lib/results/create-extraction-result";
@@ -23,6 +30,10 @@ import type {
   UpdateFileProcessingStatusInput,
 } from "@/types/files";
 import type { CreateExtractionResultInput } from "@/types/extraction-results";
+import type {
+  CreateFeatureUpdateInput,
+  FeatureUpdate,
+} from "@/types/feature-updates";
 import {
   RESULT_ITEM_STATUSES,
   RESULT_ITEM_TYPES,
@@ -56,6 +67,10 @@ export interface WebhookProcessorDependencies {
   createExtractionResultFn?: (
     input: CreateExtractionResultInput
   ) => Promise<unknown>;
+  createFeatureUpdateFn?: (
+    input: CreateFeatureUpdateInput
+  ) => Promise<FeatureUpdate>;
+  publishFeatureUpdateFn?: typeof publishFeatureUpdate;
   resolveBroadcastRecipientsFn?: typeof resolveBroadcastRecipients;
 }
 
@@ -202,6 +217,8 @@ async function routeWebhookEvent(
       return (dependencies.createExtractionResultFn ?? createExtractionResult)(
         toResultCreatedInput(event)
       );
+    case "feature_update.published":
+      return publishWebhookFeatureUpdate(event, dependencies);
   }
 }
 
@@ -384,6 +401,39 @@ function toResultCreatedInput(event: WebhookEvent): CreateExtractionResultInput 
   };
 }
 
+async function publishWebhookFeatureUpdate(
+  event: WebhookEvent,
+  dependencies: WebhookProcessorDependencies
+) {
+  const createFn = dependencies.createFeatureUpdateFn ?? createFeatureUpdate;
+  const publishFn = dependencies.publishFeatureUpdateFn ?? publishFeatureUpdate;
+  const payload = event.payload;
+  const actorId =
+    optionalPayloadString(payload.actorId) ?? optionalPayloadString(event.userId);
+  const update = await createFn({
+    title: requiredPayloadString(payload, "title", "feature_update.published"),
+    summary: requiredPayloadString(payload, "summary", "feature_update.published"),
+    content: requiredPayloadString(payload, "content", "feature_update.published"),
+    category: featureUpdateCategoryValue(payload.category),
+    visibility: featureUpdateVisibilityValue(payload.visibility),
+    version: optionalPayloadString(payload.version),
+    releaseDate: optionalPayloadString(payload.releaseDate),
+    targets: arrayValue(payload.targets)
+      .map(normalizeFeatureUpdateTargetInput)
+      .filter((target): target is NonNullable<typeof target> => Boolean(target)),
+    metadata: payloadObject(payload.metadata),
+    createdBy: actorId,
+  });
+
+  return publishFn({
+    updateId: update.id,
+    actorId,
+    notifyUsers: payload.notifyUsers === true,
+    pushPreviewAllowed: payload.pushPreviewAllowed === true,
+    confirmAllUsers: payload.confirmAllUsers === true,
+  });
+}
+
 function resultItemsValue(value: unknown): ResultItemInput[] | null {
   if (!Array.isArray(value)) {
     return null;
@@ -415,6 +465,18 @@ function resultItemStatusValue(value: unknown): ResultItemStatus {
   return RESULT_ITEM_STATUSES.includes(value as ResultItemStatus)
     ? (value as ResultItemStatus)
     : "pending";
+}
+
+function featureUpdateCategoryValue(
+  value: unknown
+): CreateFeatureUpdateInput["category"] {
+  return isFeatureUpdateCategory(value) ? value : "new_feature";
+}
+
+function featureUpdateVisibilityValue(
+  value: unknown
+): CreateFeatureUpdateInput["visibility"] {
+  return isFeatureUpdateVisibility(value) ? value : "authenticated";
 }
 
 async function createPrivilegedMessage(input: CreateMessageInput) {

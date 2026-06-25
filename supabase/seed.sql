@@ -101,6 +101,196 @@ values
   )
 on conflict (id) do nothing;
 
+insert into public.feature_updates (
+  id,
+  title,
+  slug,
+  summary,
+  content,
+  category,
+  status,
+  visibility,
+  version,
+  release_date,
+  published_at,
+  created_by,
+  updated_by,
+  metadata,
+  created_at,
+  updated_at
+)
+values
+  (
+    'a1000000-0000-0000-0000-000000000001'::uuid,
+    'Notification Center launched',
+    'notification-center-launched-v0-1-0',
+    'ChemVault now has a unified notification center for workflow and system events.',
+    'ChemVault Notification Center centralizes in-app notifications, browser push delivery, task updates, and service events across the product suite.',
+    'new_feature',
+    'published',
+    'public',
+    'v0.1.0',
+    now() - interval '5 days',
+    now() - interval '5 days',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '{"seed":true,"links":[{"label":"Notifications","href":"/notifications"}]}'::jsonb,
+    now() - interval '5 days',
+    now() - interval '5 days'
+  ),
+  (
+    'a1000000-0000-0000-0000-000000000002'::uuid,
+    'Web Push notifications added',
+    'web-push-notifications-added-v0-2-0',
+    'Browser system notifications can now mirror important ChemVault events.',
+    'Users can enable Web Push for important categories while keeping full notification details inside the authenticated ChemVault app.',
+    'new_feature',
+    'published',
+    'public',
+    'v0.2.0',
+    now() - interval '4 days',
+    now() - interval '4 days',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '{"seed":true,"links":[{"label":"Preferences","href":"/settings/notifications"}]}'::jsonb,
+    now() - interval '4 days',
+    now() - interval '4 days'
+  ),
+  (
+    'a1000000-0000-0000-0000-000000000003'::uuid,
+    'Project activity timeline improved',
+    'project-activity-timeline-improved-v0-3-0',
+    'Project timelines now show structured file, task, message, and audit-linked activity.',
+    'ChemVault project workspaces now surface project-visible events in a timeline built for scientific workflow traceability.',
+    'improvement',
+    'published',
+    'authenticated',
+    'v0.3.0',
+    now() - interval '3 days',
+    now() - interval '3 days',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '{"seed":true,"links":[{"label":"Project activity","href":"/notifications"}]}'::jsonb,
+    now() - interval '3 days',
+    now() - interval '3 days'
+  ),
+  (
+    'a1000000-0000-0000-0000-000000000004'::uuid,
+    'AI result review workflow released',
+    'ai-result-review-workflow-released-v0-4-0',
+    'You can now review, correct, approve, and save AI-extracted scientific data.',
+    'The result review workflow adds human-in-the-loop validation, item corrections, approval, rerun requests, and approved dataset creation for extracted scientific records.',
+    'new_feature',
+    'published',
+    'authenticated',
+    'v0.4.0',
+    now() - interval '2 days',
+    now() - interval '2 days',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '{"seed":true,"links":[{"label":"Result review","href":"/notifications"}]}'::jsonb,
+    now() - interval '2 days',
+    now() - interval '2 days'
+  ),
+  (
+    'a1000000-0000-0000-0000-000000000005'::uuid,
+    'Webhook duplicate notification bug fixed',
+    'webhook-duplicate-notification-bug-fixed-v0-4-1',
+    'Webhook idempotency now prevents duplicate notifications when services retry events.',
+    'ChemVault webhook processing now respects idempotency keys for retried events, reducing duplicate notifications and repeated workflow messages.',
+    'bug_fix',
+    'published',
+    'public',
+    'v0.4.1',
+    now() - interval '1 day',
+    now() - interval '1 day',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    '{"seed":true,"links":[{"label":"Webhook events","href":"/admin/webhook-events"}]}'::jsonb,
+    now() - interval '1 day',
+    now() - interval '1 day'
+  )
+on conflict (id) do nothing;
+
+insert into public.feature_update_targets (
+  id,
+  feature_update_id,
+  target_type,
+  target_payload,
+  created_at
+)
+values
+  (
+    'a2000000-0000-0000-0000-000000000001'::uuid,
+    'a1000000-0000-0000-0000-000000000001'::uuid,
+    'all_users',
+    '{}'::jsonb,
+    now() - interval '5 days'
+  ),
+  (
+    'a2000000-0000-0000-0000-000000000002'::uuid,
+    'a1000000-0000-0000-0000-000000000004'::uuid,
+    'all_users',
+    '{}'::jsonb,
+    now() - interval '2 days'
+  )
+on conflict (id) do nothing;
+
+insert into public.feature_update_reads (
+  id,
+  feature_update_id,
+  user_id,
+  read_at
+)
+values
+  (
+    'a3000000-0000-0000-0000-000000000001'::uuid,
+    'a1000000-0000-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    now() - interval '4 days'
+  )
+on conflict (feature_update_id, user_id) do nothing;
+
+insert into public.feature_update_reactions (
+  id,
+  feature_update_id,
+  user_id,
+  reaction,
+  created_at
+)
+values
+  (
+    'a4000000-0000-0000-0000-000000000001'::uuid,
+    'a1000000-0000-0000-0000-000000000004'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'useful',
+    now() - interval '1 day'
+  )
+on conflict (feature_update_id, user_id) do nothing;
+
+insert into public.feature_update_feedback (
+  id,
+  feature_update_id,
+  user_id,
+  feedback,
+  rating,
+  status,
+  created_at,
+  updated_at
+)
+values
+  (
+    'a5000000-0000-0000-0000-000000000001'::uuid,
+    'a1000000-0000-0000-0000-000000000004'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'The result approval workflow is useful. A side-by-side source view would help next.',
+    5,
+    'open',
+    now() - interval '12 hours',
+    now() - interval '12 hours'
+  )
+on conflict (id) do nothing;
+
 insert into public.audit_logs (
   id,
   actor_user_id,

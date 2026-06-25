@@ -13,6 +13,8 @@ export const API_KEY_SCOPES = [
   "results:create",
   "results:update",
   "results:export",
+  "feature_updates:create",
+  "feature_updates:publish",
 ] as const;
 
 export const WEBHOOK_EVENT_TYPES = [
@@ -23,6 +25,7 @@ export const WEBHOOK_EVENT_TYPES = [
   "file.uploaded",
   "file.status_changed",
   "result.created",
+  "feature_update.published",
 ] as const;
 
 export const WEBHOOK_EVENT_STATUSES = [

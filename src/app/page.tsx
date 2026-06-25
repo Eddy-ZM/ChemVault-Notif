@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { Activity, Database, FlaskConical, ShieldCheck } from "lucide-react";
+import { Database, FlaskConical, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { LatestUpdateWidget } from "@/components/feature-updates/LatestUpdateWidget";
 
 const workflowItems = [
   {
@@ -32,35 +33,8 @@ const workflowItems = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <header className="border-b bg-card/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Activity className="size-5" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold leading-5">
-                ChemVault
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                Notification Center
-              </span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href={"/conversations" as Route}>Messages</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href="/notifications">View all</Link>
-            </Button>
-            <NotificationBell />
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+    <div className="bg-white">
+      <section className="marketing-container grid min-h-[calc(100vh-4rem)] items-center gap-10 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <section className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <Badge variant="secondary" className="w-fit">
@@ -109,36 +83,39 @@ export default function Home() {
           </div>
         </section>
 
-        <Card className="h-fit shadow-soft">
-          <CardHeader>
-            <CardTitle>Embed target</CardTitle>
-            <CardDescription>
-              Place the bell in any authenticated ChemVault dashboard header.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="rounded-md border bg-muted/40 p-4">
-              <div className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 shadow-sm">
-                <div>
-                  <p className="text-sm font-medium">App header</p>
-                  <p className="text-xs text-muted-foreground">
-                    Current signed-in researcher
-                  </p>
+        <div className="grid h-fit gap-4">
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle>Embed target</CardTitle>
+              <CardDescription>
+                Place the bell in any authenticated ChemVault dashboard header.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="rounded-md border bg-muted/40 p-4">
+                <div className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 shadow-sm">
+                  <div>
+                    <p className="text-sm font-medium">App header</p>
+                    <p className="text-xs text-muted-foreground">
+                      Current signed-in researcher
+                    </p>
+                  </div>
+                  <NotificationBell />
                 </div>
-                <NotificationBell />
               </div>
-            </div>
-            <div id="integration" className="rounded-md bg-secondary p-4">
-              <p className="text-sm font-medium">Internal service API</p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Services call <code>/api/notifications</code> with the internal
-                ChemVault key. Browser clients read and update notifications
-                through Supabase Auth and RLS.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+              <div id="integration" className="rounded-md bg-secondary p-4">
+                <p className="text-sm font-medium">Internal service API</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Services call <code>/api/webhooks/chemvault</code> with scoped
+                  ChemVault API keys. Browser clients read and update
+                  notifications through Supabase Auth and RLS.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <LatestUpdateWidget />
+        </div>
+      </section>
+    </div>
   );
 }

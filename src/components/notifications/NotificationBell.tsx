@@ -44,6 +44,17 @@ export function NotificationBell() {
     setError(null);
 
     try {
+      const supabase = getSupabase();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+
       const response = await fetch("/api/notifications?limit=10", {
         credentials: "same-origin",
       });
@@ -68,7 +79,7 @@ export function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getSupabase]);
 
   useEffect(() => {
     let cancelled = false;
