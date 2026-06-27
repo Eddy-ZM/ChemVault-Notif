@@ -1,7 +1,7 @@
-import type { User } from "@supabase/supabase-js";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { NotificationError } from "@/lib/notifications/errors";
 import type { ExtractionResult, ExtractionResultItem } from "@/types/extraction-results";
+import type { AuthenticatedChemVaultUser } from "@/types/user-system";
 import {
   createSupabaseResultStore,
   type ResultStore,
@@ -10,7 +10,7 @@ import {
 export async function assertProjectResultAccess(input: {
   projectId: string;
   resultId: string;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store?: Pick<ResultStore, "getResult" | "isProjectMember">;
 }): Promise<ExtractionResult> {
   const store = input.store ?? createSupabaseResultStore();
@@ -26,7 +26,7 @@ export async function assertProjectResultAccess(input: {
 
 export async function assertResultAccess(input: {
   resultId: string;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store?: Pick<ResultStore, "getResult" | "isProjectMember">;
 }): Promise<ExtractionResult> {
   const store = input.store ?? createSupabaseResultStore();
@@ -42,7 +42,7 @@ export async function assertResultAccess(input: {
 
 export async function assertResultItemAccess(input: {
   itemId: string;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store?: Pick<ResultStore, "getResult" | "getResultItem" | "isProjectMember">;
 }): Promise<{
   result: ExtractionResult;
@@ -66,12 +66,12 @@ export async function assertResultItemAccess(input: {
 
 async function assertResultAccessForUser(input: {
   result: ExtractionResult;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store: Pick<ResultStore, "isProjectMember">;
 }) {
   if (
     input.result.userId === input.user.id ||
-    isAdminEmail(input.user.email) ||
+    isChemVaultAdminUser(input.user) ||
     (input.result.projectId &&
       (await input.store.isProjectMember(input.result.projectId, input.user.id)))
   ) {

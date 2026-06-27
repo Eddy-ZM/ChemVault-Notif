@@ -9,6 +9,7 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { UserSystemAccountMenu } from "@/components/user-system/UserSystemAccountMenu";
 
 const primaryLinks = [
   { href: "/", label: "Overview" },
@@ -122,6 +123,7 @@ function SiteHeader() {
 
         <div className="header-actions">
           <NotificationBell />
+          <UserSystemAccountMenu />
           <Button asChild size="sm" className="site-action-button">
             <Link href={"/notifications" as Route}>
               Open center

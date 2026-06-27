@@ -8,13 +8,29 @@ export async function requireAdminUser() {
     throw new NotificationError("Unauthorized.", undefined, 401);
   }
 
-  const email = user.email?.toLowerCase();
-
-  if (!email || !isAdminEmail(email)) {
+  if (!isChemVaultAdminUser(user)) {
     throw new NotificationError("Admin access required.", undefined, 403);
   }
 
   return { supabase, user };
+}
+
+export function isChemVaultAdminUser(user: {
+  email?: string | null;
+  role?: string | null;
+  systemRole?: string | null;
+} | null | undefined): boolean {
+  if (!user) {
+    return false;
+  }
+
+  return (
+    isAdminEmail(user.email) ||
+    user.role === "admin" ||
+    user.systemRole === "admin" ||
+    user.systemRole === "super_admin" ||
+    user.systemRole === "owner"
+  );
 }
 
 export function isAdminEmail(email: string | null | undefined): boolean {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import {
   createSupabaseFeatureUpdateStore,
   normalizeVisibleFeatureUpdateFilters,
@@ -30,7 +30,7 @@ export default async function UpdatesPage({
   const updates = await createSupabaseFeatureUpdateStore().listVisibleUpdates({
     ...normalizeVisibleFeatureUpdateFilters(params),
     userId: user?.id,
-    isAdmin: isAdminEmail(user?.email),
+    isAdmin: isChemVaultAdminUser(user),
     limit: 50,
   });
   const activeCategory = params.get("category");

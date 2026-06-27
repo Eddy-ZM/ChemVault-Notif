@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { markFeatureUpdateRead } from "@/lib/feature-updates/mark-feature-update-read";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function POST(
     await markFeatureUpdateRead({
       updateId: params.id,
       userId: user.id,
-      isAdmin: isAdminEmail(user.email),
+      isAdmin: isChemVaultAdminUser(user),
     });
 
     return NextResponse.json({ success: true });

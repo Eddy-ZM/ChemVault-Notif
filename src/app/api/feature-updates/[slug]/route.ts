@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError } from "@/lib/api/responses";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { canViewFeatureUpdate } from "@/lib/feature-updates/can-view-feature-update";
 import { createSupabaseFeatureUpdateStore } from "@/lib/feature-updates/feature-update-store";
 import { NotificationError } from "@/lib/notifications/errors";
@@ -23,7 +23,7 @@ export async function GET(
       !(await canViewFeatureUpdate({
         update,
         userId: user?.id,
-        isAdmin: isAdminEmail(user?.email),
+        isAdmin: isChemVaultAdminUser(user),
         store,
       }))
     ) {

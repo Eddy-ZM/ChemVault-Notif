@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Database, NotificationRow } from "@/lib/supabase/database.types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchCurrentUser } from "@/lib/user-system/client";
 import type { ChemVaultNotification } from "@/lib/notifications/types";
 import { toChemVaultNotification } from "@/lib/notifications/transform";
 import { NotificationDropdown } from "./NotificationDropdown";
@@ -44,10 +45,7 @@ export function NotificationBell() {
     setError(null);
 
     try {
-      const supabase = getSupabase();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { user } = await fetchCurrentUser();
 
       if (!user) {
         setNotifications([]);
@@ -79,7 +77,7 @@ export function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  }, [getSupabase]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,15 +86,13 @@ export function NotificationBell() {
       await refresh();
 
       try {
-        const supabase = getSupabase();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { user } = await fetchCurrentUser();
 
         if (cancelled || !user) {
           return;
         }
 
+        const supabase = getSupabase();
         const channel = supabase
           .channel(`notifications:${user.id}`)
           .on(

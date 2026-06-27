@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError } from "@/lib/api/responses";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import {
   createSupabaseFeatureUpdateStore,
   normalizeVisibleFeatureUpdateFilters,
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const updates = await createSupabaseFeatureUpdateStore().listVisibleUpdates({
       ...filters,
       userId: user?.id,
-      isAdmin: isAdminEmail(user?.email),
+      isAdmin: isChemVaultAdminUser(user),
     });
 
     return NextResponse.json({ updates });

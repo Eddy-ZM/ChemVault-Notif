@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { submitFeatureUpdateFeedback } from "@/lib/feature-updates/submit-feature-update-feedback";
 import { NotificationError } from "@/lib/notifications/errors";
 
@@ -32,7 +32,7 @@ export async function POST(
       userId: user.id,
       feedback,
       rating,
-      isAdmin: isAdminEmail(user.email),
+      isAdmin: isChemVaultAdminUser(user),
     });
 
     return NextResponse.json({ feedback: result }, { status: 201 });

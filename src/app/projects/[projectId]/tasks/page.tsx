@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { toChemVaultExtractionTask } from "@/lib/tasks/types";
 import { ExtractionTaskStatus } from "@/components/tasks/ExtractionTaskStatus";
 
@@ -21,13 +22,13 @@ export default async function ProjectTasksPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const { supabase, user } = await getAuthenticatedSupabase();
+  const { user } = await getAuthenticatedSupabase();
 
   if (!user) {
     return <SignedOutState />;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await createSupabaseAdminClient()
     .from("extraction_tasks")
     .select("*")
     .eq("user_id", user.id)

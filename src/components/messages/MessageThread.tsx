@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Database, MessageRow } from "@/lib/supabase/database.types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchCurrentUser } from "@/lib/user-system/client";
 import { toMessage } from "@/lib/messages/transform";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/types/messages";
@@ -81,10 +82,7 @@ export function MessageThread({
       await loadMessages();
 
       try {
-        const supabase = getSupabase();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { user } = await fetchCurrentUser();
 
         if (!cancelled) {
           setCurrentUserId(user?.id ?? null);
@@ -94,6 +92,7 @@ export function MessageThread({
           return;
         }
 
+        const supabase = getSupabase();
         const channel = supabase
           .channel(`messages:${conversationId}`)
           .on(

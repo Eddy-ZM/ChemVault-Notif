@@ -3,7 +3,7 @@ import type { Route } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { canViewFeatureUpdate } from "@/lib/feature-updates/can-view-feature-update";
 import { createSupabaseFeatureUpdateStore } from "@/lib/feature-updates/feature-update-store";
 import { markFeatureUpdateRead } from "@/lib/feature-updates/mark-feature-update-read";
@@ -24,7 +24,7 @@ export default async function FeatureUpdateDetailPage({
   const resolvedParams = await params;
   const store = createSupabaseFeatureUpdateStore();
   const update = await store.getUpdateBySlug(resolvedParams.slug);
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isChemVaultAdminUser(user);
 
   if (
     !update ||

@@ -1,6 +1,6 @@
-import type { User } from "@supabase/supabase-js";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { NotificationError } from "@/lib/notifications/errors";
+import type { AuthenticatedChemVaultUser } from "@/types/user-system";
 import type { ProjectFile } from "@/types/files";
 import {
   createSupabaseFileStore,
@@ -10,7 +10,7 @@ import {
 export async function assertProjectFileAccess(input: {
   projectId: string;
   fileId: string;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store?: Pick<FileStore, "getFile" | "isProjectMember">;
 }): Promise<ProjectFile> {
   const store = input.store ?? createSupabaseFileStore();
@@ -22,7 +22,7 @@ export async function assertProjectFileAccess(input: {
 
   if (
     file.userId === input.user.id ||
-    isAdminEmail(input.user.email) ||
+    isChemVaultAdminUser(input.user) ||
     (await store.isProjectMember(input.projectId, input.user.id))
   ) {
     return file;
@@ -33,10 +33,10 @@ export async function assertProjectFileAccess(input: {
 
 export async function assertProjectAccess(input: {
   projectId: string;
-  user: User;
+  user: AuthenticatedChemVaultUser;
   store?: Pick<FileStore, "isProjectMember">;
 }): Promise<void> {
-  if (isAdminEmail(input.user.email)) {
+  if (isChemVaultAdminUser(input.user)) {
     return;
   }
 

@@ -17,11 +17,19 @@ CHEMVAULT_APP_URL=http://localhost:3000
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@chemvault.science
+NEXT_PUBLIC_CHEMVAULT_USER_ORIGIN=https://user.chemvault.science
+CHEMVAULT_USER_ORIGIN=https://user.chemvault.science
+CHEMVAULT_USER_COOKIE_NAME=chemvault_session
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` is server-only. Do not expose it to browser code.
 `VAPID_PRIVATE_KEY` is also server-only. Only `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 is exposed to the browser.
+
+ChemVault account sessions are resolved through the User Center at
+`CHEMVAULT_USER_ORIGIN`. In production, `ChemVault-user` should issue
+`chemvault_session` with `COOKIE_DOMAIN=.chemvault.science` so
+`notify.chemvault.science` can authenticate the same httpOnly session.
 
 Generate VAPID keys:
 
@@ -71,6 +79,8 @@ The migration creates:
 - `public.broadcasts`
 - `public.broadcast_recipients`
 - `public.broadcast_audit_logs`
+- User Center-compatible text user ids across notification, messaging,
+  audit/activity, files, review, broadcast, and changelog records
 - RLS policies
 - read-only event access for owners
 - authenticated update access only for the `notifications.read` column
@@ -97,9 +107,10 @@ Authorization: Bearer cv_test_...
 ```
 
 API keys are created from `/admin/api-keys` by an authenticated admin. Admin
-access is currently controlled by `CHEMVAULT_ADMIN_EMAILS`. Raw keys are shown
-only once during creation; the database stores only SHA-256 hashes plus display
-prefixes such as `cv_test_abcd...`.
+access accepts ChemVault User Center admin roles (`admin`, `super_admin`,
+`owner`) and falls back to `CHEMVAULT_ADMIN_EMAILS` for compatibility. Raw keys
+are shown only once during creation; the database stores only SHA-256 hashes
+plus display prefixes such as `cv_test_abcd...`.
 
 Supported scopes:
 

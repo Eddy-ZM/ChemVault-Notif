@@ -19,6 +19,9 @@
   // out of this committed file.
   "vars": {
     "NEXT_PUBLIC_CHEMVAULT_FILES_BUCKET": "project-files",
+    "NEXT_PUBLIC_CHEMVAULT_USER_ORIGIN": "https://user.chemvault.science",
+    "CHEMVAULT_USER_ORIGIN": "https://user.chemvault.science",
+    "CHEMVAULT_USER_COOKIE_NAME": "chemvault_session",
     "CHEMVAULT_APP_URL": "https://notify.chemvault.science",
     "CHEMVAULT_ADMIN_EMAILS": "admin@chemvault.science",
     "VAPID_SUBJECT": "mailto:admin@chemvault.science"

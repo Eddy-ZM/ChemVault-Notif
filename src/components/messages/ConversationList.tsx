@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeTime } from "@/components/notifications/time";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchCurrentUser } from "@/lib/user-system/client";
 import { cn } from "@/lib/utils";
 import type { ConversationSummary } from "@/types/messages";
 
@@ -73,15 +74,13 @@ export function ConversationList({
       await refresh();
 
       try {
-        const supabase = getSupabase();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { user } = await fetchCurrentUser();
 
         if (cancelled || !user) {
           return;
         }
 
+        const supabase = getSupabase();
         const channel = supabase
           .channel(`conversation-list:${user.id}`)
           .on(

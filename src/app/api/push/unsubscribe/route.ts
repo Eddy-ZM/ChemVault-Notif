@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
 import { parseUnsubscribeBody } from "@/lib/notifications/push-subscriptions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { supabase, user } = await getAuthenticatedSupabase();
+    const { user } = await getAuthenticatedSupabase();
 
     if (!user) {
       return unauthorized();
     }
 
+    const supabase = createSupabaseAdminClient();
     const { endpoint } = parseUnsubscribeBody(await parseJson(request));
     let query = supabase
       .from("push_subscriptions")

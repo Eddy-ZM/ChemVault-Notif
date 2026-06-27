@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
-import { isAdminEmail } from "@/lib/auth/require-admin";
+import { isChemVaultAdminUser } from "@/lib/auth/require-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { NotificationError } from "@/lib/notifications/errors";
 import { toProjectActivityEvent } from "@/lib/audit/transform";
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const { projectId } = await context.params;
-    const admin = isAdminEmail(user.email);
+    const admin = isChemVaultAdminUser(user);
     const supabase = createSupabaseAdminClient();
 
     if (!admin && !(await isProjectMember(projectId, user.id))) {

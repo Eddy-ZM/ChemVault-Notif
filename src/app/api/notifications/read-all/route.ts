@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH() {
   try {
-    const { supabase, user } = await getAuthenticatedSupabase();
+    const { user } = await getAuthenticatedSupabase();
 
     if (!user) {
       return unauthorized();
     }
 
+    const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
       .from("notifications")
       .update({ read: true })

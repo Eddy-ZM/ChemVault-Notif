@@ -13,6 +13,7 @@ import {
 import { ExtractionTaskStatus } from "@/components/tasks/ExtractionTaskStatus";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { createSupabaseResultStore } from "@/lib/results/result-store";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { toChemVaultExtractionTask } from "@/lib/tasks/types";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +24,13 @@ export default async function ProjectTaskDetailsPage({
   params: Promise<{ projectId: string; taskId: string }>;
 }) {
   const { projectId, taskId } = await params;
-  const { supabase, user } = await getAuthenticatedSupabase();
+  const { user } = await getAuthenticatedSupabase();
 
   if (!user) {
     return <SignedOutState />;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await createSupabaseAdminClient()
     .from("extraction_tasks")
     .select("*")
     .eq("id", taskId)

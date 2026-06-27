@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { hasValidInternalKey } from "@/lib/api/internal-key";
 import { jsonError, unauthorized } from "@/lib/api/responses";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notifications/notify";
 import { parseNotificationQuery } from "@/lib/notifications/filters";
 import { toChemVaultNotification } from "@/lib/notifications/transform";
@@ -14,12 +15,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, user } = await getAuthenticatedSupabase();
+    const { user } = await getAuthenticatedSupabase();
 
     if (!user) {
       return unauthorized();
     }
 
+    const supabase = createSupabaseAdminClient();
     const filters = parseNotificationQuery(request.nextUrl.searchParams);
     let query = supabase
       .from("notifications")
