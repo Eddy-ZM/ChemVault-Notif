@@ -1,0 +1,23 @@
+{
+  "name": "ChemVault Notif",
+  "short_name": "ChemVault",
+  "description": "Notification and workflow communication infrastructure for the ChemVault ecosystem.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f5f5f7",
+  "icons": [
+    {
+      "src": "/assets/chemvault-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/chemvault-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

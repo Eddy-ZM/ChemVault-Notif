@@ -4,10 +4,16 @@ import { SiteShell } from "@/components/site/SiteShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ChemVault Notification Center",
-  description: "Unified notification center for the ChemVault ecosystem.",
+  title: "ChemVault Notif | ChemVault",
+  description: "Notification and workflow communication infrastructure for the ChemVault ecosystem.",
+  manifest: "/site.webmanifest",
   icons: {
-    icon: "/assets/chemvault-logo-mark.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/assets/chemvault-icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/assets/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/assets/chemvault-apple-touch-icon.png",
   },
 };
 

@@ -12,7 +12,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UserSystemAccountMenu } from "@/components/user-system/UserSystemAccountMenu";
 
 const primaryLinks = [
-  { href: "/", label: "Overview" },
+  { href: "/", label: "Center" },
   { href: "/notifications", label: "Notifications" },
   { href: "/conversations", label: "Messages" },
   { href: "/updates", label: "Updates" },
@@ -27,39 +27,57 @@ const moreLinks = [
   { href: "/admin/api-keys", label: "API keys" },
 ];
 
+const ecosystemLinks = [
+  { href: "https://chemvault.science", label: "Home" },
+  { href: "https://chemvault.science/pages/research.html", label: "Research" },
+  { href: "https://chemvault.science/pages/platform.html", label: "Platform" },
+  { href: "https://chemvault.science/pages/projects.html", label: "Projects" },
+  { href: "https://chemvault.science/pages/search.html", label: "Compounds" },
+  { href: "https://chemvault.science/pages/contact.html", label: "Contact" },
+];
+
 const footerGroups = [
   {
-    title: "Workspace",
+    title: "Platform",
     links: [
-      ["Notifications", "/notifications"],
-      ["Messages", "/conversations"],
-      ["Product updates", "/updates"],
+      ["Research", "https://chemvault.science/pages/research.html"],
+      ["Platform", "https://chemvault.science/pages/platform.html"],
+      ["Projects", "https://chemvault.science/pages/projects.html"],
+      ["Notes", "https://chemvault.science/pages/notes.html"],
+      ["About", "https://chemvault.science/pages/about.html"],
+    ],
+  },
+  {
+    title: "Tools",
+    links: [
+      ["Compound Search", "https://chemvault.science/pages/search.html"],
+      ["Research Workbench", "https://chemvault.science/pages/workbench.html"],
+      ["Framework App", "https://chemvault.science/pages/app.html"],
+      ["Reagents", "https://chemvault.science/pages/reagents.html"],
+      ["Materials", "https://chemvault.science/pages/materials.html"],
+      ["Atlas", "https://chemvault.science/pages/atlas.html"],
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      ["Library", "https://chemvault.science/pages/library.html"],
+      ["Methods", "https://chemvault.science/pages/methods.html"],
+      ["Spectroscopy", "https://chemvault.science/pages/spectroscopy.html"],
+      ["Dossiers", "https://chemvault.science/pages/dossiers.html"],
+      ["Public data", "https://chemvault.science/pages/public-data.html"],
+      ["Sitemap", "https://chemvault.science/pages/sitemap.html"],
+    ],
+  },
+  {
+    title: "Notify",
+    links: [
+      ["Notification Center", "/notifications"],
+      ["Project Messages", "/conversations"],
+      ["Product Updates", "/updates"],
       ["Preferences", "/settings/notifications"],
-    ],
-  },
-  {
-    title: "Admin",
-    links: [
-      ["Broadcasts", "/admin/broadcasts"],
-      ["Feature updates", "/admin/feature-updates"],
-      ["User segments", "/admin/user-segments"],
-      ["Audit logs", "/admin/audit-logs"],
-    ],
-  },
-  {
-    title: "Services",
-    links: [
       ["API keys", "/admin/api-keys"],
       ["Webhook events", "/admin/webhook-events"],
-      ["User segments", "/admin/user-segments"],
-    ],
-  },
-  {
-    title: "Review",
-    links: [
-      ["Result review", "/notifications"],
-      ["Project messages", "/conversations"],
-      ["System settings", "/settings/notifications"],
     ],
   },
 ] satisfies Array<{
@@ -83,7 +101,7 @@ function SiteHeader() {
   return (
     <header className="site-header">
       <div className="marketing-container nav-shell">
-        <Link href="/" className="brand" aria-label="ChemVault Notification Center home">
+        <a href="https://chemvault.science" className="brand" aria-label="ChemVault home">
           <span className="brand-mark" aria-hidden="true">
             <Image
               src="/assets/chemvault-logo-mark.png"
@@ -94,10 +112,10 @@ function SiteHeader() {
             />
           </span>
           <span>
-            <strong>ChemVault Notify</strong>
-            <small>notification command center</small>
+            <strong>ChemVault</strong>
+            <small>scientific infrastructure</small>
           </span>
-        </Link>
+        </a>
 
         <nav className="site-nav" aria-label="Main navigation">
           {primaryLinks.map((link) => (
@@ -109,6 +127,16 @@ function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <details className="nav-more">
+            <summary>Ecosystem</summary>
+            <div className="nav-more-menu">
+              {ecosystemLinks.map((link) => (
+                <a key={link.href} href={link.href}>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </details>
           <details className="nav-more">
             <summary>Admin</summary>
             <div className="nav-more-menu">
@@ -138,7 +166,7 @@ function SiteHeader() {
 
 function SiteFooter() {
   return (
-    <footer className="site-footer" aria-label="ChemVault Notification Center footer">
+    <footer className="site-footer" aria-label="ChemVault footer">
       <div className="footer-panel">
         <div className="footer-ambient" aria-hidden="true">
           <span />
@@ -147,7 +175,7 @@ function SiteFooter() {
         </div>
         <div className="marketing-container footer-grid">
           <div className="footer-brand-block">
-            <Link className="footer-brand" href="/">
+            <a className="footer-brand" href="https://chemvault.science">
               <span className="footer-brand-mark" aria-hidden="true">
                 <Image
                   src="/assets/chemvault-logo-mark.png"
@@ -157,26 +185,27 @@ function SiteFooter() {
                 />
               </span>
               <span>
-                <strong>ChemVault Notify</strong>
-                <small>Unified notification infrastructure</small>
+                <strong>ChemVault</strong>
+                <small>Scientific knowledge infrastructure</small>
               </span>
-            </Link>
+            </a>
             <p>
-              Central notification, messaging, webhook, audit, and workflow event infrastructure
-              for ChemVault scientific workspaces.
+              An academic technology initiative for chemistry, scientific data extraction,
+              research intelligence and AI-assisted knowledge systems. Verify primary data
+              before applying chemical information.
             </p>
             <div className="footer-social-row" aria-label="Quick footer actions">
+              <a className="footer-social" href="https://chemvault.science/pages/search.html">
+                Compound Search
+              </a>
+              <a className="footer-social" href="https://chemvault.science/pages/platform.html">
+                Platform
+              </a>
+              <a className="footer-social" href="https://chemvault.science/pages/public-data.html">
+                Public Data
+              </a>
               <Link className="footer-social" href="/notifications">
-                Notification center
-              </Link>
-              <Link className="footer-social" href="/conversations">
-                Project messages
-              </Link>
-              <Link className="footer-social" href={"/updates" as Route}>
-                Product updates
-              </Link>
-              <Link className="footer-social" href="/admin/webhook-events">
-                Webhook events
+                Notification Center
               </Link>
             </div>
           </div>
@@ -190,8 +219,8 @@ function SiteFooter() {
         <div className="marketing-container footer-bottom">
           <p>© 2026 ChemVault. All rights reserved.</p>
           <div className="footer-bottom-meta">
-            <p>Authenticated workspace data stays inside ChemVault-controlled surfaces.</p>
-            <span className="footer-version">Notification Center</span>
+            <p>Research-oriented reference and workflow infrastructure for ChemVault services.</p>
+            <span className="footer-version">ChemVault Notif</span>
           </div>
         </div>
       </div>
@@ -203,13 +232,23 @@ function FooterGroup({ title, links }: { title: string; links: Array<[string, st
   return (
     <div className="footer-column">
       <span className="footer-heading">{title}</span>
-      {links.map(([label, href]) => (
-        <Link key={href} href={href as Route}>
-          {label}
-        </Link>
-      ))}
+      {links.map(([label, href]) =>
+        isExternal(href) ? (
+          <a key={href} href={href}>
+            {label}
+          </a>
+        ) : (
+          <Link key={href} href={href as Route}>
+            {label}
+          </Link>
+        )
+      )}
     </div>
   );
+}
+
+function isExternal(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:");
 }
 
 function isActive(pathname: string, href: string) {
