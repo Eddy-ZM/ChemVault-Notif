@@ -1,474 +1,183 @@
-# ChemVault Notification Center
-
-Standalone Next.js web MVP for unified ChemVault notifications.
-
-## Environment
-
-Create `.env.local` from `.env.example`:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-CHEMVAULT_INTERNAL_API_KEY=
-CHEMVAULT_ADMIN_EMAILS=admin@chemvault.science
-CHEMVAULT_SERVICE_API_KEY=
-CHEMVAULT_APP_URL=http://localhost:3000
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:admin@chemvault.science
-NEXT_PUBLIC_CHEMVAULT_USER_ORIGIN=https://user.chemvault.science
-CHEMVAULT_USER_ORIGIN=https://user.chemvault.science
-CHEMVAULT_USER_COOKIE_NAME=chemvault_session
-```
-
-`SUPABASE_SERVICE_ROLE_KEY` is server-only. Do not expose it to browser code.
-`VAPID_PRIVATE_KEY` is also server-only. Only `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
-is exposed to the browser.
-
-ChemVault account sessions are resolved through the User Center at
-`CHEMVAULT_USER_ORIGIN`. In production, `ChemVault-user` should issue
-`chemvault_session` with `COOKIE_DOMAIN=.chemvault.science` so
-`notify.chemvault.science` can authenticate the same httpOnly session.
-
-Generate VAPID keys:
-
-```bash
-npx web-push generate-vapid-keys
-```
-
-## Run
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000`.
-
-## Apply Supabase Migrations
-
-With a linked Supabase project:
-
-```bash
-supabase db push
-```
-
-For local Supabase:
-
-```bash
-supabase start
-supabase db reset
-```
-
-The migration creates:
-
-- `public.notifications`
-- `public.notification_events`
-- `public.extraction_tasks`
-- `public.push_subscriptions`
-- `public.conversations`
-- `public.conversation_members`
-- `public.messages`
-- `public.message_reads`
-- `public.service_api_keys`
-- `public.webhook_events`
-- `public.webhook_event_logs`
-- `public.user_segments`
-- `public.user_segment_members`
-- `public.broadcasts`
-- `public.broadcast_recipients`
-- `public.broadcast_audit_logs`
-- User Center-compatible text user ids across notification, messaging,
-  audit/activity, files, review, broadcast, and changelog records
-- RLS policies
-- read-only event access for owners
-- authenticated update access only for the `notifications.read` column
-- authenticated push subscription read/create/delete access only for the owner
-- project messaging access only for conversation members
-- user message inserts only with `sender_type = "user"`
-- internal-only server utilities for `admin`, `system`, `ai`, and `task` messages
-- API key records with hashed keys only
-- webhook event and processing logs
-- admin-only broadcast and user segment tables
-- realtime publication for `public.notifications`
-- realtime publication for `public.messages`
-
-`supabase/seed.sql` inserts development examples for user id
-`00000000-0000-0000-0000-000000000001`.
-
-## API Keys and Webhooks
-
-Trusted ChemVault services should send cross-service events to:
-
-```text
-POST /api/webhooks/chemvault
-Authorization: Bearer cv_test_...
-```
-
-API keys are created from `/admin/api-keys` by an authenticated admin. Admin
-access accepts ChemVault User Center admin roles (`admin`, `super_admin`,
-`owner`) and falls back to `CHEMVAULT_ADMIN_EMAILS` for compatibility. Raw keys
-are shown only once during creation; the database stores only SHA-256 hashes
-plus display prefixes such as `cv_test_abcd...`.
-
-Supported scopes:
-
-- `notifications:create`
-- `tasks:update`
-- `messages:create`
-- `webhooks:send`
-- `admin:broadcast`
-- `admin:broadcast:all`
-
-Webhook event scope mapping:
-
-- `notification.created` requires `notifications:create`
-- `task.status_changed` requires `tasks:update`
-- `message.created` requires `messages:create`
-- `admin.broadcast` requires `admin:broadcast`
-- webhook all-user broadcasts additionally require `admin:broadcast:all`
-
-If an API key has `allowed_sources`, the webhook `source` must match one of
-those values. Empty `allowed_sources` means any source is accepted for that key.
-
-Example notification webhook:
-
-```bash
-curl -X POST "$CHEMVAULT_APP_URL/api/webhooks/chemvault" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $CHEMVAULT_SERVICE_API_KEY" \
-  -d '{
-    "eventType": "notification.created",
-    "source": "ai-extractor",
-    "userId": "00000000-0000-0000-0000-000000000001",
-    "projectId": "20000000-0000-0000-0000-000000000001",
-    "idempotencyKey": "demo-notification-completed",
-    "payload": {
-      "userId": "00000000-0000-0000-0000-000000000001",
-      "title": "AI extraction completed",
-      "body": "Structured results are ready for review.",
-      "type": "success",
-      "source": "ai-extractor",
-      "link": "/projects/20000000-0000-0000-0000-000000000001/results",
-      "metadata": {
-        "projectId": "20000000-0000-0000-0000-000000000001"
-      }
-    }
-  }'
-```
-
-Webhook idempotency:
-
-- Send `idempotencyKey` for every retryable event.
-- Reusing the same `service_name + idempotencyKey` returns the existing event.
-- Already processed events are not processed again, preventing duplicate
-  notifications and messages.
-- Failed events are preserved with `status = failed` and an error log. Automatic
-  failed-event retry is not enabled yet.
-
-Webhook event inspection pages:
-
-```text
-/admin/webhook-events
-/admin/webhook-events/<event-id>
-```
-
-`admin.broadcast` webhook events may target explicit `userIds`, a `segmentId`,
-or a broadcast-style `targetType`/`targetPayload`. The webhook endpoint rejects
-`all_users` targets unless the API key also has `admin:broadcast:all`.
-
-Example clients:
-
-- `src/examples/webhook-send-notification.ts`
-- `src/examples/webhook-task-status.ts`
-- `src/examples/webhook-message-created.ts`
-
-Webhook testing checklist:
-
-1. Add your email to `CHEMVAULT_ADMIN_EMAILS`.
-2. Open `/admin/api-keys` and create a `cv_test_` key.
-3. Give it the needed scope and allowed source, such as `ai-extractor`.
-4. Send `notification.created` and confirm the notification appears.
-5. Enable browser push and confirm `notify()` also triggers Web Push.
-6. Send `task.status_changed` and confirm the extraction task updates.
-7. Confirm task notification and project task message appear when `projectId` exists.
-8. Send `message.created` and confirm it appears in the conversation.
-9. Retry the same `idempotencyKey` and confirm no duplicate notification/message is created.
-10. Disable the API key and confirm the webhook returns 403.
-
-## Admin Broadcasts and User Segments
-
-Admin broadcast pages:
-
-```text
-/admin/broadcasts
-/admin/broadcasts/new
-/admin/broadcasts/<broadcast-id>
-/admin/user-segments
-/admin/user-segments/<segment-id>
-```
-
-Recipient resolution supports:
-
-- `single_user` from `targetPayload.userId`
-- `selected_users` from `targetPayload.userIds`
-- `project_members` from project conversations and `conversation_members`
-- `segment` from `user_segment_members`
-- `all_users` from Supabase Auth users, only when `confirmAllUsers` is true
-
-Broadcast delivery uses the existing `notify()` server function, so each
-recipient gets the normal in-app notification, realtime bell update, and Web
-Push attempt when enabled. Push body preview is generic unless
-`targetPayload.pushPreviewAllowed` is explicitly true.
-
-Safety rules:
-
-- Preview recipients before sending from the admin composer.
-- `all_users` requires typing `CONFIRM`, which sets `confirmAllUsers: true`.
-- Sent and failed broadcasts are locked from draft editing.
-- `broadcast_recipients` records each sent or failed recipient.
-- `broadcast_audit_logs` records start, completion, and failure summaries.
-
-Admin broadcast testing checklist:
-
-1. Add your email to `CHEMVAULT_ADMIN_EMAILS` and sign in.
-2. Open `/admin/user-segments` and create a manual segment.
-3. Open the segment detail page and add two Supabase user IDs.
-4. Open `/admin/broadcasts/new`, choose `User segment`, and select the segment.
-5. Preview recipients and confirm the count/sample are correct.
-6. Send the broadcast and confirm recipient notifications appear.
-7. Confirm `broadcast_recipients` rows include notification IDs.
-8. Confirm `broadcast_audit_logs` contains send start/completion entries.
-9. Try `all_users` without typing `CONFIRM` and confirm preview/send fails.
-10. Try editing a sent broadcast through the API and confirm it fails.
-11. Visit admin pages as a non-admin and confirm access is blocked.
-
-## Legacy Internal Notification Creation
-
-The older `x-chemvault-internal-key` endpoints are retained for local and
-compatibility testing. New ChemVault services should prefer the API key webhook
-endpoint above.
-
-```bash
-curl -X POST "$CHEMVAULT_APP_URL/api/notifications" \
-  -H "Content-Type: application/json" \
-  -H "x-chemvault-internal-key: $CHEMVAULT_INTERNAL_API_KEY" \
-  -d '{
-    "userId": "00000000-0000-0000-0000-000000000001",
-    "title": "AI extraction completed",
-    "body": "Your uploaded paper has been processed successfully.",
-    "type": "success",
-    "source": "ai-extractor",
-    "link": "/projects/123/results",
-    "metadata": {
-      "projectId": "123",
-      "taskId": "task-123",
-      "fileName": "paper.pdf"
-    }
-  }'
-```
-
-Authenticated users can fetch their notifications:
-
-```bash
-curl "$CHEMVAULT_APP_URL/api/notifications?limit=30"
-```
-
-This request must include Supabase Auth cookies from a signed-in browser session.
-
-## AI Extraction Task Workflow
-
-The extraction task lifecycle is:
-
-```text
-uploaded -> queued -> processing -> extracting -> validating -> completed
-                                                       \-> failed
-```
-
-Each status transition calls `updateExtractionTaskStatus()` and creates one user notification. Progress-only updates in the same status do not create a notification. `completed` and `failed` transitions always notify; failed notifications keep the user-facing body clean and store `errorMessage` in metadata.
-
-Create a fake task for local testing:
-
-```sql
-insert into public.extraction_tasks (
-  user_id,
-  project_id,
-  file_id,
-  file_name,
-  status,
-  progress,
-  metadata
-) values (
-  '00000000-0000-0000-0000-000000000001',
-  '20000000-0000-0000-0000-000000000001',
-  gen_random_uuid(),
-  'demo-paper.pdf',
-  'queued',
-  10,
-  '{"modelName":"chemvault-extractor-v1"}'
-)
-returning id;
-```
-
-Then call the internal status update API:
-
-```bash
-curl -X POST "$CHEMVAULT_APP_URL/api/internal/extraction-tasks/<task-id>/status" \
-  -H "Content-Type: application/json" \
-  -H "x-chemvault-internal-key: $CHEMVAULT_INTERNAL_API_KEY" \
-  -d '{
-    "status": "completed",
-    "progress": 100,
-    "metadata": {
-      "tablesExtracted": 8,
-      "compoundsDetected": 14,
-      "validationPassed": true
-    }
-  }'
-```
-
-View project tasks at:
-
-```text
-/projects/20000000-0000-0000-0000-000000000001/tasks
-```
-
-The AI worker integration example is in `src/examples/extraction-task-status-example.ts`.
-
-## Project Messaging
-
-Project messaging is a lightweight workspace layer, not a social chat surface.
-Users can discuss a project, admins and internal services can post project
-messages, and AI extraction status changes can write task updates into the
-project conversation.
-
-Open the full inbox:
-
-```text
-/conversations
-```
-
-Open or create a project conversation:
-
-```text
-/projects/20000000-0000-0000-0000-000000000001/messages
-```
-
-Authenticated users can send normal messages through:
-
-```http
-POST /api/conversations/<conversation-id>/messages
-```
-
-Internal services can post AI/task/system/admin messages:
-
-```bash
-curl -X POST "$CHEMVAULT_APP_URL/api/internal/messages" \
-  -H "Content-Type: application/json" \
-  -H "x-chemvault-internal-key: $CHEMVAULT_INTERNAL_API_KEY" \
-  -d '{
-    "conversationId": "50000000-0000-0000-0000-000000000001",
-    "senderType": "ai",
-    "body": "AI extraction detected 12 tables.",
-    "metadata": {
-      "projectId": "20000000-0000-0000-0000-000000000001",
-      "notificationTitle": "AI extraction update"
-    }
-  }'
-```
-
-Message notifications use `notify()`. User/admin messages create `type:
-message`, `source: project-chat`, link to `/conversations/<conversation-id>`,
-and notify other conversation members only. The sender does not receive their
-own message notification. AI/task/system messages use task or system
-notification types and link to the project messages page when `projectId` is in
-metadata.
-
-Browser push previews stay private by default. Message notifications include
-`metadata.pushPreviewAllowed = false`, so Web Push uses generic copy instead of
-full message text.
-
-AI extraction status updates call `notify()` and then write a `sender_type:
-task` message into the project conversation when the task has a `projectId`.
-Progress-only updates within the same status do not create duplicate task
-messages.
-
-Messaging test checklist:
-
-1. Apply migrations and seed data.
-2. Open `/projects/20000000-0000-0000-0000-000000000001/messages` while signed in.
-3. Send a user message and confirm it appears in the thread.
-4. Open `/conversations` and confirm the latest preview updates.
-5. Use another member session or seeded member to confirm the sender does not receive their own notification.
-6. Call `POST /api/internal/messages` with `senderType: "ai"` or `"task"`.
-7. Confirm the AI/task message appears as a workflow update.
-8. Confirm unread badges update in the conversation list.
-9. Open the conversation and confirm `POST /api/conversations/<id>/read` clears unread state.
-
-## Browser System Notifications
-
-Web Push is a progressive enhancement. If a browser does not support Service
-Workers, PushManager, or the Notifications API, in-app notifications still work.
-
-Enable system notifications:
-
-1. Configure `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
-2. Apply migrations so `public.push_subscriptions` exists.
-3. Open `/notifications` while signed in.
-4. Use the "System notifications" card to enable browser notifications.
-
-When `notify()` creates an in-app notification, it also attempts to send a Web
-Push notification to the user's saved subscriptions. Push failures are non-fatal:
-the in-app notification is still created. By default, push payloads use private
-fallback copy:
-
-```json
-{
-  "title": "ChemVault",
-  "body": "You have a new notification.",
-  "link": "/notifications"
-}
-```
-
-Actual notification title/body are sent only when
-`metadata.pushPreviewAllowed === true`.
-
-In development, `/notifications` shows a "Send test notification" button. It
-calls `POST /api/notifications/test`, creates a test notification for the current
-user, and sets `metadata.pushPreviewAllowed = true`.
-
-## Embed `NotificationBell`
-
-Place the component in an authenticated ChemVault dashboard header:
-
-```tsx
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-
-export function DashboardHeader() {
-  return (
-    <header className="flex items-center justify-between">
-      <span>ChemVault</span>
-      <NotificationBell />
-    </header>
-  );
-}
-```
-
-## Verification
-
-```bash
-npm run test
-npm run typecheck
-npm run lint
-npm run build
-```
-
-## License
-
-This repository is source-available but not open source. Public visibility is
-for review and reference only; no rights are granted to use, copy, modify,
-distribute, host, deploy, or create derivative works without prior written
-permission from Ziwen Mu or the repository owner.
-
-See [LICENSE](./LICENSE). All rights reserved.
+# ChemVault Notification Station
+
+ChemVault Notification Station 是 ChemVault 的统一通知与协作网站，面向 ChemVault 账号用户、项目成员和管理员，集中承载通知、项目消息、文件处理进度、AI 提取结果审核、产品更新和管理广播等功能。
+
+## 产品形态
+
+- 网站：作为 ChemVault 通知与项目协作入口使用，适合桌面和移动浏览器访问。
+- 浏览器 App / PWA：支持以独立窗口形式安装到设备，并支持浏览器系统通知。
+- 原生 App：当前项目未包含独立 iOS 或 Android 原生 App。
+
+## 用户角色
+
+- 普通用户：查看通知、阅读产品更新、管理通知偏好、接收系统通知。
+- 项目成员：查看项目消息、上传项目文件、跟踪 AI 提取任务、审核提取结果、查看项目活动。
+- 管理员：管理服务接入、用户分群、广播通知、产品更新、反馈、Webhook 事件和审计日志。
+
+## 网站功能
+
+### 首页与导航
+
+- 展示 ChemVault Notification Station 的核心入口。
+- 提供通知中心、项目消息、产品更新和通知偏好的快捷访问。
+- 页头通知铃显示通知入口，账号菜单连接 ChemVault User Center。
+- 首页可展示最新产品更新，帮助用户快速了解近期变化。
+
+### 账号与访问
+
+- 使用 ChemVault User Center 账号访问通知和项目协作功能。
+- 未登录用户访问受保护页面时会看到登录要求提示。
+- 项目文件、消息、任务、结果、数据集和活动仅对具备权限的项目成员开放。
+- 管理后台仅对管理员开放。
+
+### 通知中心
+
+- 汇总 ChemVault 任务结果、项目消息、系统提醒、管理员公告和服务更新。
+- 支持按已读状态筛选：全部、未读、已读。
+- 支持按通知类型和来源服务筛选。
+- 显示未读数量，并支持刷新列表。
+- 支持单条通知标记已读，点击后跳转到相关页面。
+- 支持一键将全部通知标记为已读。
+- 空状态和错误状态会给出明确提示。
+
+### 系统通知与浏览器推送
+
+- 用户可在支持的浏览器中启用系统通知。
+- 新通知可通过浏览器系统通知提醒用户。
+- 点击系统通知可打开通知中心或相关 ChemVault 页面。
+- 浏览器或环境不支持推送时，站内通知仍可正常使用。
+- 默认保护消息隐私，系统通知可使用通用提醒文案；允许预览的通知才展示更具体内容。
+
+### 通知偏好
+
+- 用户可按通知类别分别设置站内通知和 Web Push。
+- 支持的类别包括任务进度、任务完成、任务失败、项目消息、管理员公告、系统提醒、安全、账单、产品更新与营销。
+- 每个类别可独立开启或关闭站内通知和系统通知。
+- 支持恢复默认偏好设置。
+- 偏好保存后会影响后续通知投递方式。
+
+### 项目消息
+
+- 提供项目消息收件箱，集中展示项目会话。
+- 会话列表展示最近消息、更新时间和未读数量。
+- 项目成员可在项目会话中发送消息。
+- AI、任务、系统和管理员消息可作为工作流更新出现在会话中。
+- 打开会话后可查看完整消息线程，并清理对应未读状态。
+- 项目消息可与通知联动，帮助成员及时跟进协作事项。
+
+### 项目文件
+
+- 项目成员可上传科学源文件到项目工作区。
+- 支持 PDF、TXT、CSV、XLS、XLSX 等用于 AI 提取的常见文件类型。
+- 上传时可选择是否自动启动 AI 提取。
+- 文件列表展示文件状态、处理状态、文件类型、大小和上传时间。
+- 支持按文件状态和处理状态筛选。
+- 文件详情页展示文件元数据、处理时间线、关联任务和关联结果。
+- 支持对文件发起处理或将文件标记删除。
+
+### AI 提取任务
+
+- 项目任务页展示文件进入 AI 提取后的处理状态。
+- 支持查看上传、排队、处理中、提取中、验证中、完成和失败等阶段。
+- 每个任务展示当前阶段、进度百分比、更新时间和错误信息。
+- 完成任务可跳转查看提取结果。
+- 失败任务会保留面向用户的错误提示，方便后续处理。
+
+### 提取结果审核
+
+- 项目结果页集中展示 AI 提取输出。
+- 结果详情提供人工审核工作区，用于检查、修正、接受、拒绝或标记不确定的结果项。
+- 支持查看结果项类型、置信度、来源位置、审核状态和审阅记录。
+- 审核人员可记录修正原因和审阅意见。
+- 支持批准结果，生成可复用的结构化数据集。
+- 支持拒绝结果或请求重新处理。
+- 支持将结果导出为 JSON、CSV 或 XLSX。
+
+### 已批准数据集
+
+- 数据集页面展示项目内已批准的结构化数据。
+- 每个数据集包含标题、描述、版本和创建时间。
+- 用户可进入数据集详情查看已批准的数据内容。
+- 数据集用于沉淀经过人工确认的科学数据结果。
+
+### 项目活动
+
+- 项目活动页展示项目内的结构化事件历史。
+- 支持按全部、文件、提取、消息和系统分类查看。
+- 活动记录覆盖文件处理、提取流程、消息协作、通知和系统事件。
+- 事件按日期分组，便于追踪项目工作流。
+
+### 产品更新
+
+- 产品更新页展示 ChemVault 发布说明、功能改进、维护通知和重要平台变化。
+- 支持按更新类别筛选。
+- 更新卡片显示标题、摘要、版本、发布时间和未读状态。
+- 详情页展示完整更新内容和相关链接。
+- 登录用户阅读详情后可标记为已读。
+- 登录用户可对更新作出反馈反应，并提交评分与文字反馈。
+
+## 管理功能
+
+### 服务接入与 API Key
+
+- 管理员可创建 ChemVault 服务 API Key。
+- 创建时可设置服务名称、测试或正式模式、可用范围、来源限制和过期时间。
+- 管理员可查看现有服务凭据的状态、权限范围、来源限制、最后使用时间和过期时间。
+- 支持启用或停用服务凭据。
+- 原始密钥仅在创建时展示一次，便于管理员安全保存。
+
+### Webhook 事件监控
+
+- 管理员可查看来自受信任 ChemVault 服务的事件提交记录。
+- 支持按服务名称、事件类型和处理状态筛选。
+- 事件列表展示接收时间、处理时间、来源、状态和错误信息。
+- 事件详情展示用户、项目、任务、会话、幂等键、事件内容和处理日志。
+- 管理员可使用该页面排查服务通知、任务更新、消息、文件、结果和产品更新事件。
+
+### 广播通知
+
+- 管理员可创建面向指定受众的广播通知。
+- 支持单个用户、指定用户、项目成员、用户分群和全体用户等目标。
+- 发送前可预览收件人数和样例收件人。
+- 支持保存草稿、编辑草稿和立即发送。
+- 广播可选择是否允许系统通知展示正文预览。
+- 全体用户广播需要明确确认。
+- 发送后的广播会记录收件人状态和审计信息。
+
+### 用户分群
+
+- 管理员可创建手动或动态用户分群。
+- 分群可用于广播通知和产品更新定向发布。
+- 手动分群支持批量添加用户 ID 或邮箱。
+- 支持查看成员数量、成员列表和创建时间。
+- 支持从分群中移除成员。
+
+### 产品更新管理
+
+- 管理员可创建产品更新草稿。
+- 支持设置标题、摘要、正文、类别、可见范围、版本、发布日期和目标受众。
+- 支持预览更新内容。
+- 草稿或计划中的更新可继续编辑。
+- 发布时可选择是否通知用户，以及是否允许系统通知展示摘要预览。
+- 支持全体用户、指定用户、项目成员、分群、管理员和 Beta 用户等目标。
+- 管理员可查看阅读数、反馈数、通知数、目标范围和用户反馈。
+- 支持归档更新。
+
+### 用户反馈管理
+
+- 管理员可查看产品更新收到的用户反馈。
+- 反馈包含文字内容、评分、状态和创建时间。
+- 支持将反馈标记为 open、reviewed、resolved 或 archived。
+
+### 审计日志
+
+- 管理员可查看平台事件、服务事件、项目事件和管理操作记录。
+- 支持按操作、角色类型、实体类型、来源、严重程度、项目、用户、日期和关键词筛选。
+- 审计列表显示事件标题、严重程度、行为主体、操作类型、实体类型、来源和时间。
+- 审计详情展示事件描述、相关用户、项目、实体、来源、IP、浏览器信息和元数据。
+
+## 功能边界
+
+- 本项目聚焦 ChemVault 通知、消息、项目文件处理、AI 提取结果审核、产品更新和后台通知管理。
+- 当前没有独立原生移动 App。
+- README 仅描述网站和浏览器 App 的产品功能，不包含部署、接口、数据库、代码结构或实现原理说明。
