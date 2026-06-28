@@ -4,8 +4,8 @@ import { SiteShell } from "@/components/site/SiteShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ChemVault Notif | ChemVault",
-  description: "Notification and workflow communication infrastructure for the ChemVault ecosystem.",
+  title: "ChemVault Notifications | ChemVault",
+  description: "Focused notices, messages, updates, and delivery preferences for ChemVault accounts.",
   manifest: "/site.webmanifest",
   icons: {
     icon: [

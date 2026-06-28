@@ -10,13 +10,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await getAuthenticatedSupabase();
     const params = await context.params;
     const store = createSupabaseFeatureUpdateStore();
-    const update = await store.getUpdateBySlug(params.slug);
+    const update = await store.getUpdateBySlug(params.id);
 
     if (
       !update ||

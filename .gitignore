@@ -6,6 +6,7 @@ node_modules
 dist
 build
 cloudflare-env.d.ts
+tsconfig.tsbuildinfo
 .env
 .env.local
 .env.*.local

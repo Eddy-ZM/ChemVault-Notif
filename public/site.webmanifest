@@ -1,7 +1,7 @@
 {
-  "name": "ChemVault Notif",
-  "short_name": "ChemVault",
-  "description": "Notification and workflow communication infrastructure for the ChemVault ecosystem.",
+  "name": "ChemVault Notifications",
+  "short_name": "ChemVault Notify",
+  "description": "Focused notices, messages, updates, and delivery preferences for ChemVault accounts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
