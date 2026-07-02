@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function parseJson(request: NextRequest): Promise<unknown> {
+async function parseJson(request: NextRequest): Promise<unknown> {
   try {
     return await request.json();
   } catch {
@@ -51,7 +51,7 @@ export async function parseJson(request: NextRequest): Promise<unknown> {
   }
 }
 
-export function parseFeatureUpdateInput(body: unknown) {
+function parseFeatureUpdateInput(body: unknown) {
   if (!isRecord(body)) {
     throw new NotificationError("Request body is required.", undefined, 400);
   }
