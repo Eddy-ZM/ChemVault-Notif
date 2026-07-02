@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { LogIn, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -113,7 +114,7 @@ export function UserSystemAccountMenu() {
         </DropdownMenuItem>
         {session.isAdmin ? (
           <DropdownMenuItem asChild>
-            <Link href="/admin/audit-logs">
+            <Link href={"/admin" as Route}>
               <ShieldCheck className="size-4" aria-hidden="true" />
               Admin tools
             </Link>
