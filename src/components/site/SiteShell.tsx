@@ -61,6 +61,9 @@ function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <a href="https://docs.chemvault.science/manual/notifications/" target="_blank" rel="noopener noreferrer">
+            Docs
+          </a>
         </nav>
 
         <div className="header-actions">
@@ -104,6 +107,7 @@ function SiteFooter() {
           <Link href="/notifications">Notifications</Link>
           <Link href="/updates">Updates</Link>
           <Link href="/settings/notifications">Preferences</Link>
+          <a href="https://docs.chemvault.science/manual/notifications/" target="_blank" rel="noopener noreferrer">Docs</a>
           <a href="https://user.chemvault.science">User Center</a>
         </nav>
       </div>
