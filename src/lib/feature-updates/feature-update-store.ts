@@ -2,6 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminEmails, isAdminEmail } from "@/lib/auth/require-admin";
 import { NotificationError } from "@/lib/notifications/errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  isSupabaseMissingRelationError,
+  missingDatabaseFeatureError,
+} from "@/lib/supabase/errors";
 import type {
   Database,
   FeatureUpdateFeedbackInsert,
@@ -134,7 +138,13 @@ export function createSupabaseFeatureUpdateStore(
       }
 
       const { data, error } = await query.maybeSingle();
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return false;
+        }
+
+        throw error;
+      }
       return Boolean(data);
     },
 
@@ -160,7 +170,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to create feature update.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product updates", error)
+          : error ?? new Error("Failed to create feature update.");
       }
 
       return toFeatureUpdate(data);
@@ -188,7 +200,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new NotificationError("Only draft updates can be edited.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product updates", error)
+          : error ?? new NotificationError("Only draft updates can be edited.");
       }
 
       return toFeatureUpdate(data);
@@ -210,7 +224,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to publish feature update.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product updates", error)
+          : error ?? new Error("Failed to publish feature update.");
       }
 
       return toFeatureUpdate(data);
@@ -228,7 +244,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to archive feature update.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product updates", error)
+          : error ?? new Error("Failed to archive feature update.");
       }
 
       return toFeatureUpdate(data);
@@ -241,7 +259,13 @@ export function createSupabaseFeatureUpdateStore(
         .eq("id", updateId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return null;
+        }
+
+        throw error;
+      }
       return data ? toFeatureUpdate(data) : null;
     },
 
@@ -252,7 +276,13 @@ export function createSupabaseFeatureUpdateStore(
         .eq("slug", slug)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return null;
+        }
+
+        throw error;
+      }
       return data ? toFeatureUpdate(data) : null;
     },
 
@@ -263,7 +293,13 @@ export function createSupabaseFeatureUpdateStore(
         .eq("feature_update_id", updateId)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return [];
+        }
+
+        throw error;
+      }
       return (data ?? []).map(toFeatureUpdateTarget);
     },
 
@@ -273,7 +309,11 @@ export function createSupabaseFeatureUpdateStore(
         .delete()
         .eq("feature_update_id", updateId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        throw isSupabaseMissingRelationError(deleteError)
+          ? missingDatabaseFeatureError("Product update targeting", deleteError)
+          : deleteError;
+      }
 
       const rows: FeatureUpdateTargetInsert[] = targets.map((target) => ({
         feature_update_id: updateId,
@@ -290,7 +330,11 @@ export function createSupabaseFeatureUpdateStore(
         .insert(rows)
         .select("*");
 
-      if (error) throw error;
+      if (error) {
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product update targeting", error)
+          : error;
+      }
       return (data ?? []).map(toFeatureUpdateTarget);
     },
 
@@ -322,7 +366,13 @@ export function createSupabaseFeatureUpdateStore(
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return [];
+        }
+
+        throw error;
+      }
       return (data ?? []).map((row) => toFeatureUpdate(row));
     },
 
@@ -349,7 +399,13 @@ export function createSupabaseFeatureUpdateStore(
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return [];
+        }
+
+        throw error;
+      }
 
       const rows = data ?? [];
       const updateIds = rows.map((row) => row.id);
@@ -403,7 +459,11 @@ export function createSupabaseFeatureUpdateStore(
           ignoreDuplicates: false,
         });
 
-      if (error) throw error;
+      if (error) {
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product update reads", error)
+          : error;
+      }
     },
 
     async upsertReaction(input) {
@@ -419,7 +479,11 @@ export function createSupabaseFeatureUpdateStore(
           ignoreDuplicates: false,
         });
 
-      if (error) throw error;
+      if (error) {
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product update reactions", error)
+          : error;
+      }
     },
 
     async submitFeedback(input) {
@@ -436,7 +500,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to submit feature update feedback.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product update feedback", error)
+          : error ?? new Error("Failed to submit feature update feedback.");
       }
 
       return toFeatureUpdateFeedback(data);
@@ -458,7 +524,13 @@ export function createSupabaseFeatureUpdateStore(
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return [];
+        }
+
+        throw error;
+      }
       return (data ?? []).map(toFeatureUpdateFeedback);
     },
 
@@ -472,7 +544,9 @@ export function createSupabaseFeatureUpdateStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to update feedback status.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Product update feedback", error)
+          : error ?? new Error("Failed to update feedback status.");
       }
 
       return toFeatureUpdateFeedback(data);
@@ -505,7 +579,13 @@ export function createSupabaseFeatureUpdateStore(
         perPage: 1000,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return new Map<string, FeatureUpdateTarget[]>();
+        }
+
+        throw error;
+      }
       return data.users.map((user) => user.id);
     },
 
@@ -516,7 +596,13 @@ export function createSupabaseFeatureUpdateStore(
         .eq("type", "project")
         .eq("project_id", projectId);
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return new Map<string, string>();
+        }
+
+        throw error;
+      }
 
       return uniqueUserIds(
         (data ?? []).flatMap((conversation) =>
@@ -531,7 +617,13 @@ export function createSupabaseFeatureUpdateStore(
         .select("user_id")
         .eq("segment_id", segmentId);
 
-      if (error) throw error;
+      if (error) {
+        if (isSupabaseMissingRelationError(error)) {
+          return new Map<string, string>();
+        }
+
+        throw error;
+      }
       return uniqueUserIds((data ?? []).map((member) => member.user_id));
     },
 

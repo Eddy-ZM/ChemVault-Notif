@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
 import { logAuditEvent } from "@/lib/audit/log-audit-event";
+import { NotificationError } from "@/lib/notifications/errors";
+import { isSupabaseMissingRelationError } from "@/lib/supabase/errors";
 import {
   ensureDefaultNotificationPreferences,
   getUserNotificationPreferences,
@@ -24,7 +26,14 @@ export async function GET() {
       return unauthorized();
     }
 
-    await ensureDefaultNotificationPreferences(user.id);
+    await ensureDefaultNotificationPreferences(user.id).catch((error) => {
+      if (
+        !(error instanceof NotificationError && error.statusCode === 503) &&
+        !isSupabaseMissingRelationError(error)
+      ) {
+        throw error;
+      }
+    });
 
     return NextResponse.json({
       preferences: await getUserNotificationPreferences(user.id),

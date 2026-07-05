@@ -91,7 +91,10 @@ export async function subscribeToPush(): Promise<PushSubscription> {
   });
 
   if (!response.ok) {
-    throw new Error("Unable to save system notification subscription.");
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(data?.error || "Unable to save system notification subscription.");
   }
 
   return subscription;
@@ -120,6 +123,9 @@ export async function unsubscribeFromPush(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Unable to remove system notification subscription.");
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(data?.error || "Unable to remove system notification subscription.");
   }
 }

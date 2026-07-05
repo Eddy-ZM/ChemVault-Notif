@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NotificationError } from "@/lib/notifications/errors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  isSupabaseMissingRelationError,
+  missingDatabaseFeatureError,
+} from "@/lib/supabase/errors";
 import type {
   Database,
   NotificationPreferenceDefaultRow,
@@ -160,7 +164,9 @@ export async function setNotificationPreference(input: {
     .single();
 
   if (error || !data) {
-    throw error ?? new NotificationError("Failed to save notification preference.");
+    throw isSupabaseMissingRelationError(error)
+      ? missingDatabaseFeatureError("Notification preferences", error)
+      : error ?? new NotificationError("Failed to save notification preference.");
   }
 
   return toUserNotificationPreference(data as UserNotificationPreferenceRow);
@@ -202,11 +208,13 @@ export async function resetUserNotificationPreferences(
     .eq("user_id", normalizedUserId);
 
   if (error) {
-    throw new NotificationError(
-      "Failed to reset notification preferences.",
-      error,
-      500
-    );
+    throw isSupabaseMissingRelationError(error)
+      ? missingDatabaseFeatureError("Notification preferences", error)
+      : new NotificationError(
+          "Failed to reset notification preferences.",
+          error,
+          500
+        );
   }
 
   await ensureDefaultNotificationPreferences(normalizedUserId);
@@ -330,6 +338,10 @@ async function getAllDefaultPreferences(
     .select("*");
 
   if (error) {
+    if (isSupabaseMissingRelationError(error)) {
+      return createMissingDefaultsFromConstants();
+    }
+
     throw error;
   }
 
@@ -354,6 +366,10 @@ async function getUserPreferenceRows(
     .eq("user_id", userId);
 
   if (error) {
+    if (isSupabaseMissingRelationError(error)) {
+      return [];
+    }
+
     throw error;
   }
 
@@ -375,11 +391,13 @@ async function upsertPreferences(rows: PreferenceRowInput[]): Promise<void> {
   );
 
   if (error) {
-    throw new NotificationError(
-      "Failed to save notification preferences.",
-      error,
-      500
-    );
+    throw isSupabaseMissingRelationError(error)
+      ? missingDatabaseFeatureError("Notification preferences", error)
+      : new NotificationError(
+          "Failed to save notification preferences.",
+          error,
+          500
+        );
   }
 }
 

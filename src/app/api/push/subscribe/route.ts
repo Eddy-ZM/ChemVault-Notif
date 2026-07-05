@@ -3,6 +3,10 @@ import { getAuthenticatedSupabase } from "@/lib/api/auth";
 import { jsonError, unauthorized } from "@/lib/api/responses";
 import { parsePushSubscriptionBody } from "@/lib/notifications/push-subscriptions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  isSupabaseMissingRelationError,
+  missingDatabaseFeatureError,
+} from "@/lib/supabase/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +37,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      throw error;
+      throw isSupabaseMissingRelationError(error)
+        ? missingDatabaseFeatureError("System notification subscriptions", error)
+        : error;
     }
 
     return NextResponse.json({ success: true });

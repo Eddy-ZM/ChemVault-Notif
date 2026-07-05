@@ -61,6 +61,7 @@ export function SystemNotificationToggle() {
           ? enableError.message
           : "Unable to enable system notifications.";
       setError(message);
+      toast.error(message);
       setStatus(await resolveStatus());
     } finally {
       setBusy(false);
@@ -76,11 +77,12 @@ export function SystemNotificationToggle() {
       setStatus(getStatusFromPermission(getPushPermissionState(), false));
       toast.success("System notifications disabled.");
     } catch (disableError) {
-      setError(
+      const message =
         disableError instanceof Error
           ? disableError.message
-          : "Unable to disable system notifications."
-      );
+          : "Unable to disable system notifications.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }

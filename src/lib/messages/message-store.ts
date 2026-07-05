@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  isSupabaseMissingRelationError,
+  missingDatabaseFeatureError,
+} from "@/lib/supabase/errors";
 import type {
   ConversationInsert,
   Database,
@@ -84,7 +88,7 @@ export function createSupabaseMessageStore(
         .maybeSingle();
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return data ? toConversation(data) : null;
@@ -103,7 +107,9 @@ export function createSupabaseMessageStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to create conversation.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Project messaging", error)
+          : error ?? new Error("Failed to create conversation.");
       }
 
       return toConversation(data);
@@ -118,7 +124,7 @@ export function createSupabaseMessageStore(
         .maybeSingle();
 
       if (selectError) {
-        throw selectError;
+        throwMessagingSetupError(selectError);
       }
 
       if (existing) {
@@ -136,7 +142,9 @@ export function createSupabaseMessageStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to add conversation member.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Project messaging", error)
+          : error ?? new Error("Failed to add conversation member.");
       }
 
       return toConversationMember(data);
@@ -150,7 +158,7 @@ export function createSupabaseMessageStore(
         .maybeSingle();
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return data ? toConversation(data) : null;
@@ -165,7 +173,7 @@ export function createSupabaseMessageStore(
         .maybeSingle();
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return Boolean(data);
@@ -179,7 +187,7 @@ export function createSupabaseMessageStore(
         .order("created_at", { ascending: true });
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return (data ?? []).map(toConversationMember);
@@ -193,7 +201,7 @@ export function createSupabaseMessageStore(
         .order("created_at", { ascending: true });
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return (data ?? []).map(toMessage);
@@ -211,7 +219,7 @@ export function createSupabaseMessageStore(
         .in("message_id", messageIds);
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return new Set((data ?? []).map((row) => row.message_id));
@@ -232,7 +240,9 @@ export function createSupabaseMessageStore(
         .single();
 
       if (error || !data) {
-        throw error ?? new Error("Failed to create message.");
+        throw isSupabaseMissingRelationError(error)
+          ? missingDatabaseFeatureError("Project messaging", error)
+          : error ?? new Error("Failed to create message.");
       }
 
       const { error: updateError } = await supabase
@@ -241,7 +251,7 @@ export function createSupabaseMessageStore(
         .eq("id", input.conversationId);
 
       if (updateError) {
-        throw updateError;
+        throwMessagingSetupError(updateError);
       }
 
       return toMessage(data);
@@ -265,7 +275,7 @@ export function createSupabaseMessageStore(
         .select("id");
 
       if (error) {
-        throw error;
+        throwMessagingSetupError(error);
       }
 
       return data?.length ?? 0;
@@ -278,7 +288,7 @@ export function createSupabaseMessageStore(
         .eq("user_id", userId);
 
       if (memberError) {
-        throw memberError;
+        throwMessagingSetupError(memberError);
       }
 
       const conversationIds = [
@@ -303,11 +313,11 @@ export function createSupabaseMessageStore(
         ]);
 
       if (conversationsError) {
-        throw conversationsError;
+        throwMessagingSetupError(conversationsError);
       }
 
       if (messagesError) {
-        throw messagesError;
+        throwMessagingSetupError(messagesError);
       }
 
       const messages = (messageRows ?? []).map(toMessage);
@@ -340,4 +350,10 @@ export function createSupabaseMessageStore(
         );
     },
   };
+}
+
+function throwMessagingSetupError(error: unknown): never {
+  throw isSupabaseMissingRelationError(error)
+    ? missingDatabaseFeatureError("Project messaging", error)
+    : error;
 }
