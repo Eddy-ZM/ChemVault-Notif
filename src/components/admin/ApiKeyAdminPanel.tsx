@@ -36,6 +36,7 @@ interface ApiKeyAdminPanelProps {
 export function ApiKeyAdminPanel({ initialApiKeys }: ApiKeyAdminPanelProps) {
   const [apiKeys, setApiKeys] = useState(initialApiKeys);
   const [creating, setCreating] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [rawKey, setRawKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,11 +62,14 @@ export function ApiKeyAdminPanel({ initialApiKeys }: ApiKeyAdminPanelProps) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Unable to create API key.");
+      const data = (await response.json().catch(() => null)) as
+        | (SafeApiKey & { rawKey: string; error?: string })
+        | null;
+
+      if (!response.ok || !data?.rawKey) {
+        throw new Error(data?.error || "Unable to create API key.");
       }
 
-      const data = (await response.json()) as SafeApiKey & { rawKey: string };
       setRawKey(data.rawKey);
       setApiKeys((current) => [data, ...current]);
     } catch (createError) {
@@ -80,23 +84,38 @@ export function ApiKeyAdminPanel({ initialApiKeys }: ApiKeyAdminPanelProps) {
   }
 
   async function setActive(apiKeyId: string, active: boolean) {
-    const response = await fetch(`/api/admin/api-keys/${apiKeyId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({ active }),
-    });
+    setUpdatingId(apiKeyId);
+    setError(null);
 
-    if (!response.ok) {
-      setError("Unable to update API key.");
-      return;
+    try {
+      const response = await fetch(`/api/admin/api-keys/${apiKeyId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ active }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to update API key.");
+      }
+
+      setApiKeys((current) =>
+        current.map((key) => (key.id === apiKeyId ? { ...key, active } : key))
+      );
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Unable to update API key."
+      );
+    } finally {
+      setUpdatingId(null);
     }
-
-    setApiKeys((current) =>
-      current.map((key) => (key.id === apiKeyId ? { ...key, active } : key))
-    );
   }
 
   return (
@@ -203,9 +222,14 @@ export function ApiKeyAdminPanel({ initialApiKeys }: ApiKeyAdminPanelProps) {
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={updatingId !== null}
                     onClick={() => setActive(key.id, !key.active)}
                   >
-                    <ShieldOff data-icon="inline-start" />
+                    {updatingId === key.id ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <ShieldOff data-icon="inline-start" />
+                    )}
                     {key.active ? "Disable" : "Enable"}
                   </Button>
                 </div>

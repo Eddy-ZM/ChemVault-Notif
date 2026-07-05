@@ -58,7 +58,7 @@ export function ResultExportPanel({
       }
 
       onExportCreated(data.export);
-      downloadInlineExport(data.export);
+      downloadExport(data.export);
       toast.success(`${exportType.toUpperCase()} export created.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to create export.");
@@ -120,8 +120,8 @@ export function ResultExportPanel({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      disabled={!hasInlineContent(exportRecord)}
-                      onClick={() => downloadInlineExport(exportRecord)}
+                      disabled={!hasDownloadableExport(exportRecord)}
+                      onClick={() => downloadExport(exportRecord)}
                     >
                       <Download className="size-4" aria-hidden="true" />
                       <span className="sr-only">Download</span>
@@ -137,33 +137,27 @@ export function ResultExportPanel({
   );
 }
 
-function hasInlineContent(exportRecord: ExtractionResultExport) {
-  return typeof exportRecord.metadata.inlineContent === "string";
+function hasDownloadableExport(exportRecord: ExtractionResultExport) {
+  return (
+    typeof exportRecord.metadata.inlineContent === "string" ||
+    Boolean(exportRecord.storageBucket && exportRecord.storagePath)
+  );
 }
 
-function downloadInlineExport(exportRecord: ExtractionResultExport) {
-  const content = exportRecord.metadata.inlineContent;
+function downloadExport(exportRecord: ExtractionResultExport) {
+  if (!hasDownloadableExport(exportRecord)) {
+    toast.error("This export is not ready for download.");
+    return;
+  }
+
   const fileName =
     typeof exportRecord.metadata.fileName === "string"
       ? exportRecord.metadata.fileName
       : `chemvault-result.${exportRecord.exportType}`;
-  const contentType =
-    typeof exportRecord.metadata.contentType === "string"
-      ? exportRecord.metadata.contentType
-      : "application/octet-stream";
-
-  if (typeof content !== "string") {
-    toast.error("This export does not have an inline download payload.");
-    return;
-  }
-
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-  anchor.href = url;
+  anchor.href = `/api/results/${exportRecord.resultId}/exports/${exportRecord.id}/download`;
   anchor.download = fileName;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
 }

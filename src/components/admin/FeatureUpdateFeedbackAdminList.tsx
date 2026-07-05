@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,18 +33,36 @@ export function FeatureUpdateFeedbackAdminList({
 }) {
   const router = useRouter();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(id: string, status: FeatureUpdateFeedbackStatus) {
     setSavingId(id);
+    setError(null);
 
     try {
-      await fetch(`/api/admin/feature-update-feedback/${id}`, {
+      const response = await fetch(`/api/admin/feature-update-feedback/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({ status }),
       });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to update feedback status.");
+      }
+
+      toast.success("Feedback status updated.");
       router.refresh();
+    } catch (updateError) {
+      const message =
+        updateError instanceof Error
+          ? updateError.message
+          : "Unable to update feedback status.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSavingId(null);
     }
@@ -58,7 +77,13 @@ export function FeatureUpdateFeedbackAdminList({
   }
 
   return (
-    <Table>
+    <div className="flex flex-col gap-3">
+      {error ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Feedback</TableHead>
@@ -100,10 +125,14 @@ export function FeatureUpdateFeedbackAdminList({
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={savingId === item.id}
+                      disabled={savingId !== null}
                       onClick={() => updateStatus(item.id, status)}
                     >
-                      <CheckCircle2 className="size-4" aria-hidden="true" />
+                      {savingId === item.id ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <CheckCircle2 className="size-4" aria-hidden="true" />
+                      )}
                       {status}
                     </Button>
                   ))}
@@ -112,6 +141,7 @@ export function FeatureUpdateFeedbackAdminList({
           </TableRow>
         ))}
       </TableBody>
-    </Table>
+      </Table>
+    </div>
   );
 }

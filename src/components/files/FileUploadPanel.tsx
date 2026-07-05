@@ -12,6 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  inferAiExtractionMimeType,
+  isSupportedForAiExtractionFile,
+} from "@/lib/files/supported-ai-extraction";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { ProjectFile } from "@/types/files";
 
@@ -19,14 +23,6 @@ interface FileUploadPanelProps {
   projectId: string;
   onUploaded?: (file: ProjectFile) => void;
 }
-
-const supportedMimeTypes = [
-  "application/pdf",
-  "text/plain",
-  "text/csv",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel",
-];
 
 export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -47,6 +43,10 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
     setProgress(10);
 
     try {
+      const uploadMimeType = inferAiExtractionMimeType({
+        mimeType: selectedFile.type,
+        fileName: selectedFile.name,
+      });
       const bucket =
         process.env.NEXT_PUBLIC_CHEMVAULT_FILES_BUCKET ?? "project-files";
       const storagePath = `${projectId}/${Date.now()}-${crypto.randomUUID()}-${safeFileName(
@@ -58,7 +58,7 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
       const { error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(storagePath, selectedFile, {
-          contentType: selectedFile.type || undefined,
+          contentType: (uploadMimeType ?? selectedFile.type) || undefined,
           upsert: false,
         });
 
@@ -78,10 +78,12 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
           storagePath,
           originalFileName: selectedFile.name,
           fileName: safeFileName(selectedFile.name),
-          mimeType: selectedFile.type || null,
+          mimeType: (uploadMimeType ?? selectedFile.type) || null,
           fileSize: selectedFile.size,
           autoProcess,
           metadata: {
+            browserMimeType: selectedFile.type || null,
+            inferredMimeType: uploadMimeType,
             lastModified: selectedFile.lastModified,
           },
         }),
@@ -112,6 +114,19 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
       window.setTimeout(() => setProgress(0), 800);
     }
   }
+
+  const selectedFileMimeType = selectedFile
+    ? inferAiExtractionMimeType({
+        mimeType: selectedFile.type,
+        fileName: selectedFile.name,
+      }) ?? selectedFile.type
+    : null;
+  const selectedFileSupported = selectedFile
+    ? isSupportedForAiExtractionFile({
+        mimeType: selectedFile.type,
+        fileName: selectedFile.name,
+      })
+    : false;
 
   return (
     <Card>
@@ -159,10 +174,10 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
         ) : null}
         {selectedFile ? (
           <p className="text-sm text-muted-foreground">
-            {selectedFile.name} · {selectedFile.type || "unknown type"}
+            {selectedFile.name} - {selectedFileMimeType || "unknown type"}
           </p>
         ) : null}
-        {selectedFile && autoProcess && !isSupportedMimeType(selectedFile.type) ? (
+        {selectedFile && autoProcess && !selectedFileSupported ? (
           <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
             This file type is not supported for automatic AI extraction.
           </p>
@@ -177,7 +192,7 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
           disabled={
             uploading ||
             !selectedFile ||
-            (autoProcess && selectedFile ? !isSupportedMimeType(selectedFile.type) : false)
+            (autoProcess && selectedFile ? !selectedFileSupported : false)
           }
           onClick={() => void uploadSelectedFile()}
         >
@@ -191,8 +206,4 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
 
 function safeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-}
-
-function isSupportedMimeType(mimeType: string) {
-  return supportedMimeTypes.includes(mimeType);
 }

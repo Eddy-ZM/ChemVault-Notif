@@ -90,6 +90,7 @@ export interface InsertExportRecordInput {
 
 export interface ResultStore {
   getResult(resultId: string): Promise<ExtractionResult | null>;
+  getExport(exportId: string): Promise<ExtractionResultExport | null>;
   getResultByTaskId(taskId: string): Promise<ExtractionResult | null>;
   listProjectResults(input: {
     projectId: string;
@@ -152,6 +153,20 @@ export function createSupabaseResultStore(
       }
 
       return data ? toExtractionResult(data) : null;
+    },
+
+    async getExport(exportId) {
+      const { data, error } = await supabase
+        .from("extraction_result_exports")
+        .select("*")
+        .eq("id", exportId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data ? toExtractionResultExport(data) : null;
     },
 
     async getResultByTaskId(taskId) {

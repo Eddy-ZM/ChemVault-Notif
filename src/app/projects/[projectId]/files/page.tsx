@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Activity, ArrowLeft, Beaker, ClipboardList, Files } from "lucide-react";
-import { FileUploadPanel } from "@/components/files/FileUploadPanel";
-import { ProjectFileList } from "@/components/files/ProjectFileList";
+import { ProjectFilesWorkspace } from "@/components/files/ProjectFilesWorkspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAuthenticatedSupabase } from "@/lib/api/auth";
@@ -66,10 +65,7 @@ export default async function ProjectFilesPage({
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[24rem_1fr]">
-          <FileUploadPanel projectId={projectId} />
-          <ProjectFileList projectId={projectId} />
-        </div>
+        <ProjectFilesWorkspace projectId={projectId} />
       </div>
     </main>
   );

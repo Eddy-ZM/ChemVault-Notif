@@ -14,15 +14,8 @@ import {
   type FileStore,
 } from "./file-store";
 import { fileAuditMetadata } from "./register-uploaded-file";
+import { isSupportedForAiExtractionFile } from "./supported-ai-extraction";
 import { updateFileProcessingStatus } from "./update-file-processing-status";
-
-const AI_EXTRACTION_MIME_TYPES = new Set([
-  "application/pdf",
-  "text/plain",
-  "text/csv",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel",
-]);
 
 interface CreateExtractionTaskForFileInput {
   fileId: string;
@@ -92,8 +85,10 @@ export async function createExtractionTaskForFile(
   return task;
 }
 
-export function isSupportedForAiExtraction(file: Pick<ProjectFile, "mimeType">) {
-  return Boolean(file.mimeType && AI_EXTRACTION_MIME_TYPES.has(file.mimeType));
+export function isSupportedForAiExtraction(
+  file: Pick<ProjectFile, "fileName" | "mimeType" | "originalFileName">
+) {
+  return isSupportedForAiExtractionFile(file);
 }
 
 async function loadExtractionTask(

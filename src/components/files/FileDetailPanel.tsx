@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Loader2, Play, Trash2 } from "lucide-react";
+import { Download, FileText, Loader2, Play, Trash2 } from "lucide-react";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -181,6 +181,15 @@ export function FileDetailPanel({ projectId, fileId }: FileDetailPanelProps) {
     }
   }
 
+  function downloadOriginalFile() {
+    const anchor = document.createElement("a");
+    anchor.href = `/api/projects/${projectId}/files/${fileId}/download`;
+    anchor.download = file?.originalFileName ?? "chemvault-file";
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
   if (loading) {
     return <Skeleton className="h-96 w-full" />;
   }
@@ -282,6 +291,15 @@ export function FileDetailPanel({ projectId, fileId }: FileDetailPanelProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={file.status === "deleted"}
+              onClick={downloadOriginalFile}
+            >
+              <Download data-icon="inline-start" />
+              Download file
+            </Button>
             <Button
               type="button"
               disabled={actionLoading !== null || file.status === "deleted"}
