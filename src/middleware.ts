@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const legacySurfacePattern = /^\/projects\/[^/]+\/(datasets|files|results|tasks)(?:\/|$)/;
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const match = request.nextUrl.pathname.match(legacySurfacePattern);
   if (match) {
     console.info(JSON.stringify({
