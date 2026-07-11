@@ -59,7 +59,7 @@ describe("extractionNotificationMap", () => {
       body: "Your document has been converted into structured scientific data.",
       type: "success",
       source: "ai-extractor",
-      link: `/projects/${baseTask.projectId}/results`,
+      link: `https://lab.chemvault.science/history?source=notifications&projectId=${baseTask.projectId}&taskId=${baseTask.id}`,
       metadata: {
         taskId: baseTask.id,
         projectId: baseTask.projectId,
@@ -81,7 +81,7 @@ describe("extractionNotificationMap", () => {
       "ChemVault AI could not complete the extraction task. Please review the error details."
     );
     expect(payload.link).toBe(
-      `/projects/${baseTask.projectId}/tasks/${baseTask.id}`
+      `https://lab.chemvault.science/history?source=notifications&projectId=${baseTask.projectId}&taskId=${baseTask.id}`
     );
     expect(payload.metadata).toMatchObject({
       errorMessage: "Unable to parse malformed table region.",

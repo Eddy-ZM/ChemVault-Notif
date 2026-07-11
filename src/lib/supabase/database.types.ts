@@ -1483,7 +1483,16 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      export_user_lifecycle_data: {
+        Args: { subject_user_id: string };
+        Returns: Json;
+      };
+      delete_user_lifecycle_data: {
+        Args: { subject_user_id: string };
+        Returns: Json;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

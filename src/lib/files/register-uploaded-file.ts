@@ -1,6 +1,7 @@
 import { notify } from "@/lib/notifications/notify";
 import type { NotificationPayload } from "@/lib/notifications/types";
 import { NotificationError } from "@/lib/notifications/errors";
+import { canonicalProductUrl } from "@/lib/product-boundaries";
 import type { CreateProjectFileInput, ProjectFile } from "@/types/files";
 import {
   createSupabaseFileStore,
@@ -41,9 +42,11 @@ export async function registerUploadedFile(
     body: "Your file has been uploaded successfully.",
     type: "success",
     source: "chemvault-files",
-    link: file.projectId
-      ? `/projects/${file.projectId}/files/${file.id}`
-      : "/notifications",
+    link: canonicalProductUrl("files", "/files", {
+      source: "notifications",
+      projectId: file.projectId || undefined,
+      fileId: file.id,
+    }),
     metadata: {
       fileId: file.id,
       projectId: file.projectId,

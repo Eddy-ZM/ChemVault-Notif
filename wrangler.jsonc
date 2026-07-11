@@ -15,7 +15,7 @@
   "workers_dev": true,
   "preview_urls": false,
   // Set production values in Cloudflare dashboard or with wrangler secrets.
-  // Keep SUPABASE_SERVICE_ROLE_KEY, VAPID_PRIVATE_KEY, and internal API keys
+  // Keep SUPABASE_SERVICE_ROLE_KEY, VAPID_PRIVATE_KEY, LIFECYCLE_SERVICE_SECRET, and internal API keys
   // out of this committed file.
   "vars": {
     "NEXT_PUBLIC_CHEMVAULT_FILES_BUCKET": "project-files",

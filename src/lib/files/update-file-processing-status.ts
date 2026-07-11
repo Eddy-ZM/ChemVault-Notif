@@ -3,6 +3,7 @@ import { getOrCreateProjectConversation } from "@/lib/messages/get-or-create-pro
 import { notify } from "@/lib/notifications/notify";
 import { NotificationError } from "@/lib/notifications/errors";
 import type { NotificationPayload } from "@/lib/notifications/types";
+import { canonicalProductUrl } from "@/lib/product-boundaries";
 import type { MessageMetadata } from "@/types/messages";
 import type {
   FileEventType,
@@ -323,9 +324,11 @@ function notificationPayload(
   file: ProjectFile,
   eventType: FileEventType
 ): NotificationPayload {
-  const link = file.projectId
-    ? `/projects/${file.projectId}/files/${file.id}`
-    : "/notifications";
+  const link = canonicalProductUrl("files", "/files", {
+    source: "notifications",
+    projectId: file.projectId || undefined,
+    fileId: file.id,
+  });
 
   switch (eventType) {
     case "file.processing_queued":

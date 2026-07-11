@@ -1,4 +1,5 @@
 import type { NotificationPayload } from "@/lib/notifications/types";
+import { canonicalProductUrl } from "@/lib/product-boundaries";
 import type {
   ChemVaultExtractionTask,
   ExtractionTaskStatus,
@@ -53,16 +54,22 @@ export const extractionNotificationMap = {
     body: "Your document has been converted into structured scientific data.",
     type: "success",
     source: "ai-extractor",
-    link: (task) =>
-      task.projectId ? `/projects/${task.projectId}/results` : null,
+    link: (task) => canonicalProductUrl("lab", "/history", {
+      source: "notifications",
+      projectId: task.projectId || undefined,
+      taskId: task.id,
+    }),
   },
   failed: {
     title: "Extraction failed",
     body: "ChemVault AI could not complete the extraction task. Please review the error details.",
     type: "error",
     source: "ai-extractor",
-    link: (task) =>
-      task.projectId ? `/projects/${task.projectId}/tasks/${task.id}` : null,
+    link: (task) => canonicalProductUrl("lab", "/history", {
+      source: "notifications",
+      projectId: task.projectId || undefined,
+      taskId: task.id,
+    }),
   },
 } satisfies Record<ExtractionTaskStatus, ExtractionNotificationDefinition>;
 

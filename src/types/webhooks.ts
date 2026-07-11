@@ -26,6 +26,8 @@ export const WEBHOOK_EVENT_TYPES = [
   "file.status_changed",
   "result.created",
   "feature_update.published",
+  "lab.analysis.completed",
+  "forms.submission.received",
 ] as const;
 
 export const WEBHOOK_EVENT_STATUSES = [

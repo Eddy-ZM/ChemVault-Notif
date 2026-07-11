@@ -1,7 +1,7 @@
 -- Adjust audit and project activity security policies to support admin/auditing flows.
 
--- Keep project-member helper available for project activity visibility checks.
-drop function if exists public.is_project_member(uuid, uuid);
+-- Keep the existing function identity because RLS policies depend on it.
+-- CREATE OR REPLACE updates the implementation without dropping dependants.
 create or replace function public.is_project_member(
   project_id uuid,
   member_user_id uuid
@@ -24,6 +24,50 @@ $$;
 
 revoke all on function public.is_project_member(uuid, uuid) from public;
 grant execute on function public.is_project_member(uuid, uuid) to authenticated;
+
+-- Policies below depend on this helper, so define it before creating them.
+create or replace function public.is_admin_user()
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public, auth
+as $$
+declare
+  jwt_email text;
+  jwt_role text;
+  configured_emails text[];
+begin
+  jwt_email := lower(coalesce(auth.jwt() ->> 'email', ''));
+  jwt_role := lower(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', ''));
+  configured_emails := string_to_array(
+    lower(coalesce(current_setting('app.admin_emails', true), '')),
+    ','
+  );
+
+  if jwt_role = 'admin' then
+    return true;
+  end if;
+  if jwt_email <> '' and jwt_email = any(configured_emails) then
+    return true;
+  end if;
+  return exists (
+    select 1
+    from auth.users u
+    where u.id = (select auth.uid())
+      and (
+        lower(coalesce(u.raw_app_meta_data ->> 'role', '')) = 'admin'
+        or lower(coalesce(u.email, '')) = any(configured_emails)
+      )
+  );
+exception
+  when others then
+    return false;
+end;
+$$;
+
+revoke all on function public.is_admin_user() from public;
+grant execute on function public.is_admin_user() to authenticated;
 
 drop policy if exists audit_logs_admin_only on public.audit_logs;
 create policy audit_logs_admin_only
@@ -71,38 +115,3 @@ create policy project_activity_events_insert_service
   for insert
   to authenticated
   with check (false);
-
--- Helper for admin checks used by policy evaluations.
-create or replace function public.is_admin_user()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select current_setting('request.jwt.claims', true)::jsonb ->> 'email' ilike any (
-    string_to_array(current_setting('app.admin_emails', true), ',')
-  );
-$$;
-
--- Fallback for local/database usage when app.admin_emails is not set.
-create or replace function public.is_admin_user()
-returns boolean
-language plpgsql
-as $$
-begin
-  return exists (
-    select 1
-    from auth.users
-    where auth.users.id = auth.uid()
-      and lower(auth.users.email) = any (
-        string_to_array(coalesce(current_setting('app.admin_emails', true), ''), ',')
-      )
-  );
-exception
-  when others then
-    return false;
-end;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.is_admin_user() TO authenticated;

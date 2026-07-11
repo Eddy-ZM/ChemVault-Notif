@@ -4,6 +4,7 @@ import { createMessage } from "@/lib/messages/create-message";
 import { NotificationError } from "@/lib/notifications/errors";
 import { notify } from "@/lib/notifications/notify";
 import type { NotificationPayload } from "@/lib/notifications/types";
+import { canonicalProductUrl } from "@/lib/product-boundaries";
 import type {
   CreateExtractionResultInput,
   ExtractionResult,
@@ -188,9 +189,10 @@ function resultReadyNotification(result: ExtractionResult): NotificationPayload 
     body: "ChemVault has extracted scientific data from your file. Please review the result.",
     type: "success",
     source: "ai-extractor",
-    link: result.projectId
-      ? `/projects/${result.projectId}/results/${result.id}`
-      : `/results/${result.id}`,
+    link: canonicalProductUrl("lab", `/result/${encodeURIComponent(result.id)}`, {
+      source: "notifications",
+      projectId: result.projectId || undefined,
+    }),
     metadata: {
       resultId: result.id,
       taskId: result.taskId,
