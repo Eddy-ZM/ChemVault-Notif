@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import "./globals.css";
+import "./exhibition-theme.css";
 
 export const metadata: Metadata = {
   title: "ChemVault Notifications | ChemVault",

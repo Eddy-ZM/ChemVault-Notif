@@ -91,7 +91,7 @@ export function ExtractionTaskStatus({
           >
             <div
               className={cn(
-                "h-full rounded-full bg-primary transition-all",
+                "h-full rounded-full bg-primary transition-[width]",
                 isFailed && "bg-destructive"
               )}
               style={{ width: `${task.progress}%` }}

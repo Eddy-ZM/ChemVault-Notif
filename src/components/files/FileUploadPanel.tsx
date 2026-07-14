@@ -167,7 +167,7 @@ export function FileUploadPanel({ projectId, onUploaded }: FileUploadPanelProps)
         {progress > 0 ? (
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full bg-primary transition-all"
+              className="h-full bg-primary transition-[width]"
               style={{ width: `${progress}%` }}
             />
           </div>

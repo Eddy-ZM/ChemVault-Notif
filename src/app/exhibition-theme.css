@@ -1,0 +1,207 @@
+@font-face {
+  font-family: "CV Inter";
+  src: url("/fonts/inter-400.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CV Inter";
+  src: url("/fonts/inter-600.ttf") format("truetype");
+  font-weight: 600 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CV Newsreader";
+  src: url("/fonts/newsreader-400.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CV Newsreader";
+  src: url("/fonts/newsreader-500.ttf") format("truetype");
+  font-weight: 500 700;
+  font-display: swap;
+}
+
+:root {
+    --background: 43 24% 93%;
+    --foreground: 218 56% 15%;
+    --card: 40 100% 99%;
+    --card-foreground: 218 56% 15%;
+    --popover: 40 100% 99%;
+    --popover-foreground: 218 56% 15%;
+    --primary: 222 84% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 22% 90%;
+    --secondary-foreground: 218 56% 15%;
+    --muted: 42 22% 90%;
+    --muted-foreground: 216 14% 45%;
+    --accent: 221 100% 94%;
+    --accent-foreground: 222 84% 43%;
+    --border: 40 16% 81%;
+    --input: 40 16% 81%;
+    --ring: 222 84% 51%;
+    --radius: 0.625rem;
+    --chemvault-bg: #f4f1e9;
+    --chemvault-surface: #fffdf8;
+    --chemvault-surface-2: #ece8df;
+    --chemvault-text: #10203a;
+    --chemvault-muted: #647084;
+    --chemvault-line: rgba(16, 32, 58, 0.15);
+    --chemvault-strong-line: rgba(16, 32, 58, 0.3);
+    --chemvault-blue: #155eef;
+    --chemvault-blue-dark: #0f4fd6;
+    --chemvault-shadow: 0 18px 42px rgba(7, 17, 31, 0.08);
+}
+
+body {
+  background: #f4f1e9;
+  color: #10203a;
+  font-family: "CV Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.site-header {
+  min-height: 74px;
+  border-bottom-color: rgba(255, 255, 255, 0.13);
+  background: rgba(7, 17, 31, 0.97);
+  box-shadow: none;
+}
+
+.nav-shell {
+  min-height: 74px;
+}
+
+.brand strong,
+.site-nav a {
+  color: #f7f4ec;
+}
+
+.brand small {
+  color: #91a1b2;
+}
+
+.brand-mark {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible,
+.site-nav a.is-active {
+  color: #ffffff;
+}
+
+.site-nav a::after {
+  background: #55d6e8;
+}
+
+.site-action-button {
+  border-color: #155eef;
+  background: #155eef;
+  color: #ffffff;
+}
+
+.notify-home {
+  background: #f4f1e9;
+}
+
+.notify-hero {
+  position: relative;
+  width: 100vw;
+  max-width: none;
+  min-height: 650px;
+  margin-left: calc(50% - 50vw);
+  padding-inline: max(24px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #07111f;
+}
+
+.notify-hero h1,
+.notify-section-heading h2,
+.notify-channel-card strong,
+.site-main h1,
+.site-main h2,
+.site-main h3 {
+  font-family: "CV Newsreader", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+}
+
+.notify-hero h1 {
+  color: #fffdf8;
+  line-height: 0.88;
+}
+
+.notify-hero-copy p {
+  color: #b7c5d1;
+}
+
+.notify-kicker {
+  border-color: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #55d6e8;
+  box-shadow: none;
+}
+
+.notify-console,
+.notify-console-header,
+.notify-console-item,
+.notify-operating-strip {
+  border-color: rgba(255, 255, 255, 0.17);
+  background: rgba(255, 255, 255, 0.055);
+  color: #f7f4ec;
+  box-shadow: none;
+}
+
+.notify-console-header span,
+.notify-console-item span,
+.notify-operating-strip span {
+  color: #aebbc9;
+}
+
+.notify-console-item.is-current {
+  border-color: rgba(85, 214, 232, 0.5);
+  background: rgba(21, 94, 239, 0.2);
+}
+
+.notify-workspace {
+  background: #f4f1e9;
+}
+
+.notify-channel-card,
+.notify-update-panel,
+.site-main :is(.rounded-xl, .rounded-lg).border.bg-card {
+  border-color: #d8d2c7;
+  border-radius: 10px;
+  background: #fffdf8;
+  box-shadow: none;
+}
+
+.notify-channel-card:hover,
+.notify-channel-card:focus-visible {
+  border-color: rgba(21, 94, 239, 0.45);
+  box-shadow: 0 18px 40px rgba(7, 17, 31, 0.08);
+}
+
+.site-footer {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  background: #07111f;
+}
+
+@media (max-width: 760px) {
+  .site-header,
+  .nav-shell {
+    min-height: 66px;
+  }
+
+  .notify-hero {
+    min-height: auto;
+    padding-top: 72px;
+    padding-bottom: 72px;
+  }
+}
