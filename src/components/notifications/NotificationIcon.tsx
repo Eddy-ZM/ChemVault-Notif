@@ -42,12 +42,15 @@ const iconConfig = {
 } satisfies Record<NotificationType, { icon: typeof Info; className: string }>;
 
 interface NotificationIconProps {
-  type: NotificationType;
+  type: NotificationType | string | null | undefined;
   className?: string;
 }
 
 export function NotificationIcon({ type, className }: NotificationIconProps) {
-  const config = iconConfig[type];
+  const config =
+    type && Object.hasOwn(iconConfig, type)
+      ? iconConfig[type as NotificationType]
+      : iconConfig.info;
   const Icon = config.icon;
 
   return (

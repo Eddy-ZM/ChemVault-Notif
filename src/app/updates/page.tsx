@@ -27,12 +27,17 @@ export default async function UpdatesPage({
     }
   }
 
-  const updates = await createSupabaseFeatureUpdateStore().listVisibleUpdates({
-    ...normalizeVisibleFeatureUpdateFilters(params),
-    userId: user?.id,
-    isAdmin: isChemVaultAdminUser(user),
-    limit: 50,
-  });
+  const updates = await createSupabaseFeatureUpdateStore()
+    .listVisibleUpdates({
+      ...normalizeVisibleFeatureUpdateFilters(params),
+      userId: user?.id,
+      isAdmin: isChemVaultAdminUser(user),
+      limit: 50,
+    })
+    .catch((error) => {
+      console.error("Failed to load feature updates", error);
+      return [];
+    });
   const activeCategory = params.get("category");
 
   return (

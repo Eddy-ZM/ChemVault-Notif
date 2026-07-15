@@ -71,7 +71,7 @@ export function UserSystemAccountMenu() {
   if (!session?.user) {
     return (
       <Button asChild variant="outline" size="sm">
-        <a href={session?.links.login ?? "https://user.chemvault.science/login"}>
+        <a href={session?.links?.login ?? "https://user.chemvault.science/login"}>
           <LogIn className="size-4" aria-hidden="true" />
           Sign in
         </a>

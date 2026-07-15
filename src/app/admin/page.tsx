@@ -35,7 +35,7 @@ const adminSections: Array<{
 }> = [
   {
     title: "Service API keys",
-    description: "Create, scope, enable, and disable trusted service credentials.",
+    description: "Manage trusted service keys for secure notification delivery.",
     href: "/admin/api-keys",
     icon: KeyRound,
   },

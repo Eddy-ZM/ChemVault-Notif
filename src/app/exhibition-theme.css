@@ -79,6 +79,10 @@ body {
   color: #f7f4ec;
 }
 
+.site-nav a {
+  min-height: 44px !important;
+}
+
 .brand small {
   color: #91a1b2;
 }
@@ -100,9 +104,29 @@ body {
 }
 
 .site-action-button {
+  min-height: 44px !important;
   border-color: #155eef;
   background: #155eef;
   color: #ffffff;
+}
+
+.header-actions button[aria-label="Open notifications"] {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+.brand,
+.notify-home a,
+.notify-home button {
+  min-width: 44px;
+  min-height: 44px !important;
+}
+
+.header-actions a,
+.header-actions button {
+  min-height: 44px !important;
 }
 
 .notify-home {
@@ -193,10 +217,74 @@ body {
   background: #07111f;
 }
 
+.site-footer a {
+  display: inline-flex;
+  min-width: 44px !important;
+  min-height: 44px;
+  align-items: center;
+}
+
 @media (max-width: 760px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   .site-header,
   .nav-shell {
     min-height: 66px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: clip;
+  }
+
+  .nav-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding-block: 10px;
+  }
+
+  .brand {
+    max-width: min(58vw, 220px);
+  }
+
+  .brand strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-nav {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    justify-self: start;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .site-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-nav a {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .header-actions {
+    max-width: 42vw;
+    justify-content: flex-end;
+    overflow-x: clip;
+  }
+
+  .site-action-button {
+    display: none;
   }
 
   .notify-hero {
@@ -204,4 +292,34 @@ body {
     padding-top: 72px;
     padding-bottom: 72px;
   }
+
+  main,
+  .marketing-container {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+}
+
+.site-nav a,
+.site-header a,
+.site-header button,
+.site-action-button,
+button,
+[role="button"],
+select,
+textarea,
+input:not([type="checkbox"]):not([type="radio"]),
+.inline-flex.h-8,
+.inline-flex.h-9,
+.inline-flex.h-10,
+.site-footer a {
+  min-width: 46px !important;
+  min-height: 46px !important;
+}
+
+.site-nav a,
+.site-header a,
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
 }
